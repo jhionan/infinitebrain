@@ -1,0 +1,45 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+coverage.out
+coverage.html
+*.test
+
+# Environment files (never commit secrets)
+.env
+.env.local
+.env.*.local
+configs/*.env
+!configs/example.env
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Go build cache
+/vendor/
+
+# Secrets
+configs/apns_key.p8
+*.pem
+*.key
+*.p12
+
+# Generated code (can be regenerated)
+db/sqlc/*.go
+
+# Logs
+*.log
+
+# Private research, brainstorms, and scratch notes (never public)
+docs/private/
+docs/*.private.md

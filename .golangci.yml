@@ -1,0 +1,88 @@
+run:
+  timeout: 5m
+  go: "1.23"
+
+linters:
+  enable:
+    - bodyclose
+    - contextcheck
+    - dogsled
+    - dupl
+    - errcheck
+    - errorlint
+    - exhaustive
+    - funlen
+    - gci
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - goimports
+    - govet
+    - ineffassign
+    - misspell
+    - noctx
+    - nolintlint
+    - prealloc
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - stylecheck
+    - testifylint
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+    - wrapcheck
+
+linters-settings:
+  funlen:
+    lines: 80
+    statements: 50
+  gocyclo:
+    min-complexity: 15
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/rian/infinite_brain)
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - "checkPrivateReceivers"
+          - "sayRepetitiveInsteadOfStutters"
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - .Wrap(
+      - .WithMessage(
+
+issues:
+  exclude-rules:
+    # Allow longer test files
+    - path: _test\.go
+      linters:
+        - funlen
+        - dupl
+        - goconst
+    # Allow generated code
+    - path: db/sqlc/
+      linters:
+        - all
+  max-issues-per-linter: 0
+  max-same-issues: 0
