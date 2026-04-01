@@ -1,5 +1,5 @@
-// Package errors defines typed application errors for consistent HTTP responses.
-package errors
+// Package apperrors defines typed application errors for consistent HTTP responses.
+package apperrors
 
 import (
 	"errors"

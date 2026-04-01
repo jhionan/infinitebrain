@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
+
 	"github.com/rian/infinite_brain/pkg/logger"
 )
 

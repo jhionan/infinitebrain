@@ -1,3 +1,4 @@
+// Package main is the server entry point for Infinite Brain.
 package main
 
 import (
@@ -14,7 +15,6 @@ import (
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -22,9 +22,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status":"ok","service":"infinite-brain"}`)
+		fmt.Fprintf(w, `{"status":"ok","service":"infinite-brain"}`) //nolint:errcheck
 	})
 
 	srv := &http.Server{
@@ -47,11 +47,12 @@ func main() {
 	log.Println("shutting down gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("forced shutdown: %v", err)
+		cancel()
+		log.Printf("forced shutdown: %v", err)
+		os.Exit(1)
 	}
+	cancel()
 
 	log.Println("server stopped")
 }
