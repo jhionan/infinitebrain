@@ -144,7 +144,9 @@ func TestService_Login_ValidCredentialsReturnsTokenPair(t *testing.T) {
 func TestService_Login_WrongPasswordReturnsUnauthorized(t *testing.T) {
 	repo := newMockRepo()
 	svc := newTestService(repo)
-	svc.Register(context.Background(), "carol@test.com", "Carol", "correct-pass") //nolint:errcheck
+	if _, err := svc.Register(context.Background(), "carol@test.com", "Carol", "correct-pass"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
 
 	_, err := svc.Login(context.Background(), "carol@test.com", "wrong-pass")
 	if !errors.Is(err, apperrors.ErrUnauthorized) {

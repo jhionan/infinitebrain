@@ -78,7 +78,10 @@ func (s *serviceImpl) Refresh(ctx context.Context, refreshToken string) (*TokenP
 
 	session, err := s.repo.FindSessionByTokenHash(ctx, tokenHash)
 	if err != nil {
-		return nil, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("invalid or expired refresh token"))
+		if errors.Is(err, apperrors.ErrNotFound) {
+			return nil, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("invalid or expired refresh token"))
+		}
+		return nil, fmt.Errorf("looking up session: %w", err)
 	}
 
 	// Rotate: invalidate old session immediately.
