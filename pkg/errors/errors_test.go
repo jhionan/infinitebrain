@@ -58,9 +58,21 @@ func TestIsNotFound_ReturnsFalseForOtherErrors(t *testing.T) {
 	}
 }
 
+func TestIsNotFound_ReturnsFalseForPlainError(t *testing.T) {
+	if apperrors.IsNotFound(fmt.Errorf("plain error")) {
+		t.Error("expected IsNotFound to return false for plain error")
+	}
+}
+
 func TestIsUnauthorized_ReturnsTrueForUnauthorized(t *testing.T) {
 	if !apperrors.IsUnauthorized(apperrors.ErrUnauthorized) {
 		t.Error("expected IsUnauthorized to return true")
+	}
+}
+
+func TestIsUnauthorized_ReturnsFalseForPlainError(t *testing.T) {
+	if apperrors.IsUnauthorized(fmt.Errorf("plain error")) {
+		t.Error("expected IsUnauthorized to return false for plain error")
 	}
 }
 

@@ -116,3 +116,87 @@ func TestIsProduction_ReturnsFalseForLocalEnv(t *testing.T) {
 		t.Error("expected IsProduction() to return false for local env")
 	}
 }
+
+func TestLoad_EnvInt_UsesSetValue(t *testing.T) {
+	env := validEnv()
+	env["DB_MAX_OPEN_CONNS"] = "50"
+	setTestEnv(t, env)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Database.MaxOpenConns != 50 {
+		t.Errorf("expected MaxOpenConns=50, got %d", cfg.Database.MaxOpenConns)
+	}
+}
+
+func TestLoad_EnvInt_FallsBackOnInvalidValue(t *testing.T) {
+	env := validEnv()
+	env["DB_MAX_OPEN_CONNS"] = "notanint"
+	setTestEnv(t, env)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Database.MaxOpenConns != 25 {
+		t.Errorf("expected fallback MaxOpenConns=25, got %d", cfg.Database.MaxOpenConns)
+	}
+}
+
+func TestLoad_EnvBool_UsesSetValue(t *testing.T) {
+	env := validEnv()
+	env["S3_USE_SSL"] = "false"
+	setTestEnv(t, env)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Storage.UseSSL {
+		t.Error("expected UseSSL=false")
+	}
+}
+
+func TestLoad_EnvBool_FallsBackOnInvalidValue(t *testing.T) {
+	env := validEnv()
+	env["S3_USE_SSL"] = "notabool"
+	setTestEnv(t, env)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.Storage.UseSSL {
+		t.Error("expected fallback UseSSL=true")
+	}
+}
+
+func TestLoad_EnvDuration_UsesSetValue(t *testing.T) {
+	env := validEnv()
+	env["JWT_ACCESS_DURATION"] = "30m"
+	setTestEnv(t, env)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Auth.AccessTokenDuration != 30*time.Minute {
+		t.Errorf("expected 30m, got %v", cfg.Auth.AccessTokenDuration)
+	}
+}
+
+func TestLoad_EnvDuration_FallsBackOnInvalidValue(t *testing.T) {
+	env := validEnv()
+	env["JWT_ACCESS_DURATION"] = "notaduration"
+	setTestEnv(t, env)
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Auth.AccessTokenDuration != 15*time.Minute {
+		t.Errorf("expected fallback 15m, got %v", cfg.Auth.AccessTokenDuration)
+	}
+}

@@ -10,7 +10,7 @@ import (
 
 // Response is the standard API response envelope.
 type Response struct {
-	Data  interface{}    `json:"data"`
+	Data  any    `json:"data"`
 	Meta  *Meta          `json:"meta,omitempty"`
 	Error *ErrorResponse `json:"error,omitempty"`
 }
@@ -29,14 +29,14 @@ type ErrorResponse struct {
 }
 
 // JSON writes a JSON response with the given status code and data.
-func JSON(w http.ResponseWriter, status int, data interface{}) {
+func JSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(Response{Data: data}) //nolint:errcheck
 }
 
 // JSONWithMeta writes a JSON response with pagination metadata.
-func JSONWithMeta(w http.ResponseWriter, status int, data interface{}, meta *Meta) {
+func JSONWithMeta(w http.ResponseWriter, status int, data any, meta *Meta) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(Response{Data: data, Meta: meta}) //nolint:errcheck
