@@ -161,3 +161,105 @@ func TestService_Login_UnknownEmailReturnsUnauthorized(t *testing.T) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
+
+func TestService_Refresh_ValidTokenReturnsNewPair(t *testing.T) {
+	repo := newMockRepo()
+	svc := newTestService(repo)
+	if _, err := svc.Register(context.Background(), "dave@test.com", "Dave", "pass12345"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+
+	pair, err := svc.Login(context.Background(), "dave@test.com", "pass12345")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	newPair, err := svc.Refresh(context.Background(), pair.RefreshToken)
+	if err != nil {
+		t.Fatalf("Refresh: %v", err)
+	}
+	if newPair.AccessToken == pair.AccessToken {
+		t.Error("Refresh should issue a new access token")
+	}
+	if newPair.RefreshToken == pair.RefreshToken {
+		t.Error("Refresh should issue a new refresh token (rotation)")
+	}
+}
+
+func TestService_Refresh_OldTokenInvalidAfterRotation(t *testing.T) {
+	repo := newMockRepo()
+	svc := newTestService(repo)
+	if _, err := svc.Register(context.Background(), "eve@test.com", "Eve", "pass12345"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+
+	pair, err := svc.Login(context.Background(), "eve@test.com", "pass12345")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+	if _, err := svc.Refresh(context.Background(), pair.RefreshToken); err != nil {
+		t.Fatalf("first Refresh: %v", err)
+	}
+
+	_, err = svc.Refresh(context.Background(), pair.RefreshToken)
+	if !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized for reused refresh token, got %v", err)
+	}
+}
+
+func TestService_Logout_InvalidatesRefreshToken(t *testing.T) {
+	repo := newMockRepo()
+	svc := newTestService(repo)
+	if _, err := svc.Register(context.Background(), "frank@test.com", "Frank", "pass12345"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+
+	pair, err := svc.Login(context.Background(), "frank@test.com", "pass12345")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if err := svc.Logout(context.Background(), pair.RefreshToken); err != nil {
+		t.Fatalf("Logout: %v", err)
+	}
+
+	_, err = svc.Refresh(context.Background(), pair.RefreshToken)
+	if !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized after logout, got %v", err)
+	}
+}
+
+func TestService_Logout_AlreadyExpiredTokenIsNoOp(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	err := svc.Logout(context.Background(), "nonexistent-refresh-token")
+	if err != nil {
+		t.Errorf("Logout of nonexistent token should be no-op, got: %v", err)
+	}
+}
+
+func TestService_Me_ReturnsUserProfile(t *testing.T) {
+	repo := newMockRepo()
+	svc := newTestService(repo)
+	pair, err := svc.Register(context.Background(), "grace@test.com", "Grace", "pass12345")
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	// Extract user ID from access token
+	signer := auth.NewSigner("test-secret-that-is-32chars-long!!", 15*time.Minute)
+	claims, err := signer.Verify(pair.AccessToken)
+	if err != nil {
+		t.Fatalf("verifying token: %v", err)
+	}
+
+	profile, err := svc.Me(context.Background(), claims.UserID.String())
+	if err != nil {
+		t.Fatalf("Me: %v", err)
+	}
+	if profile.Email != "grace@test.com" {
+		t.Errorf("Email = %q, want grace@test.com", profile.Email)
+	}
+	if profile.DisplayName != "Grace" {
+		t.Errorf("DisplayName = %q, want Grace", profile.DisplayName)
+	}
+}
