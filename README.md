@@ -8,17 +8,88 @@
 
 ## What It Is
 
-Knowledge systems tend toward disorder. Thoughts are forgotten. Decisions are re-made.
-Teams lose context when people leave. Organizations drift from their own direction.
+You forget things. Your team forgets things. Your company forgets why it made decisions,
+loses context when people leave, and slowly drifts from its own direction.
+This is not a people problem. It is a systems problem.
 At every scale — individual, team, squad, company — the natural state is entropy.
 
-Infinite Brain is the intelligence layer that fights entropy at any level of any hierarchy.
-The same engine. The same data model. Applied recursively: individual → team → org → beyond.
+Infinite Brain is the intelligence layer that fights that entropy.
+One engine. One data model. Applied recursively at every level of any hierarchy.
 
-- **Individual**: external memory + decision support + focus tools
-- **Team**: shared knowledge that outlives any one person
-- **Organization**: collective intelligence without individual surveillance
-- **Platform**: business rules + agent orchestration + context API for AI tools
+Everything you capture — notes, decisions, tasks, emails, voice memos, code context —
+becomes part of a knowledge graph that understands relationships, surfaces what matters,
+and keeps you aligned with where you're actually trying to go.
+
+The same system that helps an individual stay focused helps a team stay coherent
+and helps an organization stay true to its direction. It scales because the model
+is recursive, not because it was bolted together from separate products.
+
+> Infinite Brain is built with Infinite Brain.
+> Every feature spec, architecture decision, and task in this repository
+> was captured, organized, and planned inside the product itself.
+> See [docs/META.md](docs/META.md) for the self-building loop.
+
+---
+
+## What It Can Be Used For
+
+### For Individuals — your external brain
+
+You have more context in your head than any tool captures.
+Infinite Brain changes that.
+
+- Capture notes, voice memos, and ideas from anywhere — email, WhatsApp, web clipper, API
+- Ask questions across everything you've ever saved: *"What did I decide about X last year?"*
+- See connections between ideas you never linked yourself
+- Stay focused: task decomposition, priority scoring, and a system that knows when you're overloaded
+- Every decision you make becomes part of a searchable, queryable history
+
+**Who it's for**: founders, engineers, researchers, anyone who thinks in systems and loses too much to memory.
+
+---
+
+### For Teams — shared knowledge that outlives any one person
+
+When your best engineer leaves, what stays behind?
+Infinite Brain keeps the context, not just the artifacts.
+
+- Shared knowledge graph across the whole team — decisions, ADRs, context, tribal knowledge
+- New team members get up to speed from the system, not from whoever has time to explain things
+- Every task carries the reasoning behind it — not just what was done, but why
+- Business rules are explicit, versioned, and injected into every agent and AI task automatically
+- Integrates with your existing tools: Jira, Linear, Asana, GitHub Projects — IB stays the source of truth
+
+**Who it's for**: engineering teams, product squads, any group where context loss is a real cost.
+
+---
+
+### For Organizations — collective intelligence without surveillance
+
+Most org-level intelligence tools require trading privacy for insight.
+Infinite Brain is designed so you don't have to make that trade.
+
+- The organization learns from its people — without identifying or benchmarking individuals
+- Ideas surface through merit, not through who said them (no HiPPO effect)
+- Every major decision is scored against the organization's True North — its honest objectives
+- Coherence score across the whole org: are we actually moving in the direction we say we are?
+- Privacy by architecture: k-anonymity enforced at the query layer, not as a policy
+
+**Who it's for**: CTOs, COOs, chiefs of staff — anyone responsible for organizational direction.
+
+---
+
+### As a Platform — the intelligent context layer for AI agents
+
+AI tools are only as good as the context they have.
+Infinite Brain gives them the full picture.
+
+- MCP server: any AI tool (Cursor, Claude Code, Copilot) can query your knowledge graph in real time
+- Business rules and requirements are automatically injected into every agent task
+- Agent tasks are decomposed from goals, verified against acceptance criteria, and tracked
+- Build your own integrations on top of the context API — one query returns everything relevant to a topic
+- SOC2 + HIPAA + EU AI Act compliance built in — safe to use for regulated industries
+
+**Who it's for**: teams building AI-assisted workflows, developers using LLM tools daily, regulated industries that need auditability.
 
 ---
 
