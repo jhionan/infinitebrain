@@ -43,3 +43,4 @@ db/sqlc/*.go
 # Private research, brainstorms, and scratch notes (never public)
 docs/private/
 docs/*.private.md
+docs/superpowers/
