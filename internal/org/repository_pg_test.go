@@ -320,8 +320,6 @@ func TestOrgRepository_RLS_CrossOrgAccessBlocked(t *testing.T) {
 	}
 
 	// Build a separate pool that connects as the non-superuser app role.
-	connURL, err := pool.Config().ConnString(), error(nil)
-	_ = connURL
 	// Derive the DSN from the existing pool config and replace the user.
 	cfg := pool.Config().Copy()
 	cfg.ConnConfig.User = "app_user"

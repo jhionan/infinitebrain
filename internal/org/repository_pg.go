@@ -121,6 +121,8 @@ func (r *pgRepository) CountMembers(ctx context.Context, orgID uuid.UUID) (int64
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
+// mapOrgFields maps raw column values to an Org domain model.
+// Parameters in order: id, name, slug, plan, maxMembers, settingsJSON, phiEnabled, createdAt, updatedAt.
 func mapOrgFields(id pgtype.UUID, name, slug, plan string, maxMembers *int32, settingsJSON []byte, phiEnabled bool, createdAt, updatedAt pgtype.Timestamptz) (*Org, error) {
 	var settings OrgSettings
 	if err := UnmarshalSettings(settingsJSON, &settings); err != nil {

@@ -38,6 +38,8 @@ type Member struct {
 	Role        string
 	InvitedBy   *uuid.UUID
 	JoinedAt    time.Time
+	// Email and DisplayName are only populated when retrieved via ListMembers (JOIN query).
+	// FindMember does not populate these fields.
 	Email       string
 	DisplayName string
 }
