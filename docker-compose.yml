@@ -23,7 +23,7 @@ services:
     container_name: infinitebrain_valkey
     command: valkey-server --appendonly yes
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - valkey_data:/data
     healthcheck:
@@ -74,9 +74,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # Jaeger UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "16687:16686"   # Jaeger UI
+      - "4319:4317"     # OTLP gRPC
+      - "4320:4318"     # OTLP HTTP
     profiles:
       - observability
 

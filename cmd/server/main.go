@@ -18,6 +18,8 @@ import (
 	"github.com/rian/infinite_brain/internal/health"
 	"github.com/rian/infinite_brain/internal/ping"
 	"github.com/rian/infinite_brain/internal/security"
+	"github.com/rian/infinite_brain/pkg/config"
+	"github.com/rian/infinite_brain/pkg/database"
 	"github.com/rian/infinite_brain/pkg/metrics"
 	"github.com/rian/infinite_brain/pkg/middleware"
 )
@@ -27,23 +29,32 @@ const maxBodyBytes = 1 << 20 // 1 MiB
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	cfg, err := config.Load()
+	if err != nil {
+		// Logger not yet available — use zerolog default writer.
+		bootstrap := zerolog.New(os.Stderr).With().Timestamp().Logger()
+		bootstrap.Fatal().Err(err).Msg("failed to load config")
 	}
 
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	level, _ := zerolog.ParseLevel(cfg.App.LogLevel)
+	logger := zerolog.New(os.Stderr).Level(level).With().Timestamp().Logger()
+
+	pool, err := database.New(ctx, database.DefaultConfig(cfg.Database.URL))
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to connect to database")
+	}
+	defer pool.Close()
 
 	srv := &http.Server{
-		Addr:         ":" + port,
-		Handler:      buildMux(logger),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:         ":" + cfg.Server.Port,
+		Handler:      buildMux(logger, health.WithProbe("database", pool)),
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
 
 	go func() {
-		logger.Info().Str("port", port).Msg("infinite-brain starting")
+		logger.Info().Str("port", cfg.Server.Port).Msg("infinite-brain starting")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal().Err(err).Msg("server error")
 		}
@@ -60,18 +71,17 @@ func main() {
 		os.Exit(1)
 	}
 	cancel()
-
 	logger.Info().Msg("server stopped")
 }
 
-func buildMux(logger zerolog.Logger) http.Handler {
+func buildMux(logger zerolog.Logger, checkerOpts ...health.Option) http.Handler {
 	mux := http.NewServeMux()
 
 	// connect-go RPC handlers
 	mux.Handle(pingv1connect.NewPingServiceHandler(ping.NewHandler()))
 
 	// Plain HTTP health endpoints (k8s liveness + readiness probes)
-	checker := health.NewChecker()
+	checker := health.NewChecker(checkerOpts...)
 	h := health.NewHandler(checker)
 	mux.HandleFunc("/health/live", h.Live)
 	mux.HandleFunc("/health/ready", h.Ready)
