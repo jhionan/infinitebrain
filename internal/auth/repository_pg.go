@@ -73,7 +73,7 @@ func (r *pgRepository) FindUserByEmail(ctx context.Context, email string) (*User
 	if err != nil {
 		return nil, mapNotFound(err, "user not found")
 	}
-	return mapFindUserRow(row.ID, row.OrgID, row.Email, row.DisplayName, row.Role, row.PasswordHash, row.PepperVersion, row.CreatedAt, row.UpdatedAt), nil
+	return mapFindUserByEmailRow(row), nil
 }
 
 func (r *pgRepository) FindUserByID(ctx context.Context, id uuid.UUID) (*User, error) {
@@ -81,7 +81,7 @@ func (r *pgRepository) FindUserByID(ctx context.Context, id uuid.UUID) (*User, e
 	if err != nil {
 		return nil, mapNotFound(err, "user not found")
 	}
-	return mapFindUserRow(row.ID, row.OrgID, row.Email, row.DisplayName, row.Role, row.PasswordHash, row.PepperVersion, row.CreatedAt, row.UpdatedAt), nil
+	return mapFindUserByIDRow(row), nil
 }
 
 func (r *pgRepository) CreateSession(ctx context.Context, s *Session) (*Session, error) {
@@ -147,21 +147,39 @@ func mapCreateUserRow(row sqlcdb.CreateUserRow) *User {
 	}
 }
 
-func mapFindUserRow(id, orgID pgtype.UUID, email, displayName, role string, passwordHash *string, pepperVersion int16, createdAt, updatedAt pgtype.Timestamptz) *User {
+func mapFindUserByEmailRow(r sqlcdb.FindUserByEmailRow) *User {
 	hash := ""
-	if passwordHash != nil {
-		hash = *passwordHash
+	if r.PasswordHash != nil {
+		hash = *r.PasswordHash
 	}
 	return &User{
-		ID:            id.Bytes,
-		OrgID:         orgID.Bytes,
-		Email:         email,
-		DisplayName:   displayName,
-		Role:          role,
+		ID:            r.ID.Bytes,
+		OrgID:         r.OrgID.Bytes,
+		Email:         r.Email,
+		DisplayName:   r.DisplayName,
+		Role:          r.Role,
 		PasswordHash:  hash,
-		PepperVersion: pepperVersion,
-		CreatedAt:     createdAt.Time,
-		UpdatedAt:     updatedAt.Time,
+		PepperVersion: r.PepperVersion,
+		CreatedAt:     r.CreatedAt.Time,
+		UpdatedAt:     r.UpdatedAt.Time,
+	}
+}
+
+func mapFindUserByIDRow(r sqlcdb.FindUserByIDRow) *User {
+	hash := ""
+	if r.PasswordHash != nil {
+		hash = *r.PasswordHash
+	}
+	return &User{
+		ID:            r.ID.Bytes,
+		OrgID:         r.OrgID.Bytes,
+		Email:         r.Email,
+		DisplayName:   r.DisplayName,
+		Role:          r.Role,
+		PasswordHash:  hash,
+		PepperVersion: r.PepperVersion,
+		CreatedAt:     r.CreatedAt.Time,
+		UpdatedAt:     r.UpdatedAt.Time,
 	}
 }
 
@@ -184,7 +202,7 @@ func isUniqueViolation(err error) bool {
 // mapNotFound maps pgx.ErrNoRows → apperrors.ErrNotFound; passes other errors through.
 func mapNotFound(err error, msg string) error {
 	if errors.Is(err, pgx.ErrNoRows) {
-		return apperrors.ErrNotFound.Wrap(fmt.Errorf("%s", msg))
+		return apperrors.ErrNotFound.Wrap(errors.New(msg))
 	}
 	return err
 }

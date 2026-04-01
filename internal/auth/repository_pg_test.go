@@ -196,3 +196,45 @@ func TestPgRepository_DeleteSession_RemovesSession(t *testing.T) {
 		t.Errorf("expected ErrNotFound after deletion, got %v", err)
 	}
 }
+
+func TestPgRepository_DeleteSessionsByUserID_RemovesAllUserSessions(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := auth.NewRepository(pool)
+
+	user, _ := repo.Register(context.Background(), "frank@example.com", "Frank", "hash", 1)
+
+	// Create two sessions for the same user
+	_, err := repo.CreateSession(context.Background(), &auth.Session{
+		UserID:    user.ID,
+		OrgID:     user.OrgID,
+		TokenHash: "token-session-one",
+		ExpiresAt: time.Now().Add(time.Hour),
+	})
+	if err != nil {
+		t.Fatalf("CreateSession 1: %v", err)
+	}
+	_, err = repo.CreateSession(context.Background(), &auth.Session{
+		UserID:    user.ID,
+		OrgID:     user.OrgID,
+		TokenHash: "token-session-two",
+		ExpiresAt: time.Now().Add(time.Hour),
+	})
+	if err != nil {
+		t.Fatalf("CreateSession 2: %v", err)
+	}
+
+	// Delete all sessions for this user
+	if err := repo.DeleteSessionsByUserID(context.Background(), user.ID); err != nil {
+		t.Fatalf("DeleteSessionsByUserID: %v", err)
+	}
+
+	// Both sessions should be gone
+	_, err = repo.FindSessionByTokenHash(context.Background(), "token-session-one")
+	if !errors.Is(err, apperrors.ErrNotFound) {
+		t.Errorf("session 1: expected ErrNotFound, got %v", err)
+	}
+	_, err = repo.FindSessionByTokenHash(context.Background(), "token-session-two")
+	if !errors.Is(err, apperrors.ErrNotFound) {
+		t.Errorf("session 2: expected ErrNotFound, got %v", err)
+	}
+}
