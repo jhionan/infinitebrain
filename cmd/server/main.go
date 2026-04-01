@@ -31,9 +31,9 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		// Logger not yet available — use zerolog default writer.
-		bootstrap := zerolog.New(os.Stderr).With().Timestamp().Logger()
-		bootstrap.Fatal().Err(err).Msg("failed to load config")
+		// Logger not yet available — write directly and exit.
+		fmt.Fprintf(os.Stderr, `{"level":"fatal","error":"%v","message":"failed to load config"}`+"\n", err)
+		os.Exit(1)
 	}
 
 	level, _ := zerolog.ParseLevel(cfg.App.LogLevel)
