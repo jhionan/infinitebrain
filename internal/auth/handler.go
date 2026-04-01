@@ -57,7 +57,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	pair, err := h.svc.Register(r.Context(), req.Email, req.DisplayName, req.Password)
 	if err != nil {
-		h.logger.Warn().Err(err).Str("email", req.Email).Msg("register failed")
+		h.logger.Warn().Err(err).Msg("register failed")
 		middleware.JSONError(w, err)
 		return
 	}

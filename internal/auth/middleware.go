@@ -27,7 +27,7 @@ func Auth(signer *Signer) func(http.Handler) http.Handler {
 			}
 			claims, err := signer.Verify(token)
 			if err != nil {
-				middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(errors.New("invalid token")))
+				middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(err))
 				return
 			}
 			ctx := context.WithValue(r.Context(), claimsKey, claims)
