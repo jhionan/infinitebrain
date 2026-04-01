@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -44,25 +43,25 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("infinite-brain starting on :%s", port)
+		logger.Info().Str("port", port).Msg("infinite-brain starting")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server error: %v", err)
+			logger.Fatal().Err(err).Msg("server error")
 		}
 	}()
 
 	<-ctx.Done()
 	stop()
-	log.Println("shutting down gracefully...")
+	logger.Info().Msg("shutting down gracefully")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		cancel()
-		log.Printf("forced shutdown: %v", err)
+		logger.Error().Err(err).Msg("forced shutdown")
 		os.Exit(1)
 	}
 	cancel()
 
-	log.Println("server stopped")
+	logger.Info().Msg("server stopped")
 }
 
 func buildMux(logger zerolog.Logger) http.Handler {
