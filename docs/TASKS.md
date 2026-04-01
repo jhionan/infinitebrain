@@ -62,7 +62,7 @@ Someday:  Post-MVP                 → clearly parked
 | T-105 | LICENSE (AGPL-3.0) | `planned` | — | Actual LICENSE file in repo root |
 | T-106 | README.md — portfolio-grade | `planned` | — | Badges, Mermaid architecture diagram, quick start, stack rationale, links to ADRs |
 | T-107 | Open source hygiene | `planned` | — | CONTRIBUTING.md, SECURITY.md, CHANGELOG.md, .github/ISSUE_TEMPLATE/, .github/pull_request_template.md |
-| T-108 | Dockerfile — multi-stage + distroless | `planned` | features/108-dockerfile/ | Builder stage (Go 1.26.1) + gcr.io/distroless/static final; non-root user; no shell |
+| T-108 | Dockerfile — multi-stage + distroless | `completed` | features/108-dockerfile/ | Builder stage (Go 1.26.1) + gcr.io/distroless/static final; non-root user; no shell |
 | T-109 | Architecture Decision Records (ADRs) | `planned` | docs/decisions/ | One ADR per key decision: connect-go, Valkey, River, OpenBao, Atlas, pgvector, AGPL-3.0 |
 
 ---
@@ -88,7 +88,7 @@ Someday:  Post-MVP                 → clearly parked
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
 | T-112 | connect-go server (REST + gRPC + gRPC-Web, graceful shutdown) | `completed` | features/112-server/ | Single handler serves all three protocols; replaces Chi + separate gRPC server; buf + protovalidate |
-| T-103 | Protocol Buffers — service definitions + buf codegen | `completed` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
+| T-103 | Protocol Buffers — service definitions + buf codegen | `in_progress` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
 | T-110 | Health + readiness endpoints | `completed` | features/110-health/ | GET /health/live (liveness), GET /health/ready (readiness: DB + Valkey + migrations); used by k8s probes |
 | T-111 | Observability foundation | `planned` | features/111-observability/ | Correlation/trace IDs on every request; slog fields; OTEL traces to Tempo; Prometheus /metrics; request ID in response headers |
 | T-091 | CI pipeline (GitHub Actions) | `completed` | features/091-ci/ | test + lint + build + security scan; Go 1.26.1, pgvector/pgvector:pg18, valkey:9-alpine |
