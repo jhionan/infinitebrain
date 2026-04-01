@@ -14,7 +14,7 @@ import (
 type Config struct {
 	App      AppConfig
 	Database DatabaseConfig
-	Redis    RedisConfig
+	Valkey   ValkeyConfig
 	Auth     AuthConfig
 	AI       AIConfig
 	Storage  StorageConfig
@@ -37,8 +37,8 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration
 }
 
-// RedisConfig holds Redis settings.
-type RedisConfig struct {
+// ValkeyConfig holds Valkey connection settings.
+type ValkeyConfig struct {
 	URL      string
 	Password string
 	DB       int
@@ -92,10 +92,10 @@ func Load() (*Config, error) {
 			MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 5),
 			ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		},
-		Redis: RedisConfig{
-			URL:      requireEnv("REDIS_URL"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getEnvInt("REDIS_DB", 0),
+		Valkey: ValkeyConfig{
+			URL:      requireEnv("VALKEY_URL"),
+			Password: getEnv("VALKEY_PASSWORD", ""),
+			DB:       getEnvInt("VALKEY_DB", 0),
 		},
 		Auth: AuthConfig{
 			JWTSecret:            requireEnv("JWT_SECRET"),
