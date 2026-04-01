@@ -38,6 +38,6 @@ CREATE INDEX org_members_user_id_idx ON org_members (user_id);
 ALTER TABLE nodes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY org_isolation ON nodes
-    USING (org_id = current_setting('app.current_org_id', true)::uuid);
+    USING (org_id = current_setting('app.current_org_id')::uuid);
 
 COMMIT;

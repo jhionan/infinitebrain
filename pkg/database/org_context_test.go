@@ -118,6 +118,40 @@ func TestWithOrgContext_ReleasesConnectionOnError(t *testing.T) {
 	}
 }
 
+func TestWithOrgContext_DoesNotLeakAcrossPoolConnections(t *testing.T) {
+	pool := mustTestPool(t)
+
+	orgID := uuid.New()
+
+	// Set org context in one call.
+	err := database.WithOrgContext(context.Background(), pool, orgID, func(conn *pgxpool.Conn) error {
+		return nil // just set it and release
+	})
+	if err != nil {
+		t.Fatalf("first WithOrgContext failed: %v", err)
+	}
+
+	// Acquire a connection directly (may reuse the same pool connection).
+	// The GUC must NOT carry over.
+	conn, err := pool.Acquire(context.Background())
+	if err != nil {
+		t.Fatalf("acquire after WithOrgContext failed: %v", err)
+	}
+	defer conn.Release()
+
+	var got string
+	if err := conn.QueryRow(context.Background(),
+		"SELECT current_setting('app.current_org_id', true)").Scan(&got); err != nil {
+		t.Fatalf("query current_setting: %v", err)
+	}
+
+	// After the transaction committed, the transaction-local GUC is cleared.
+	// The raw connection should have no org_id set (empty string with missing_ok=true).
+	if got == orgID.String() {
+		t.Errorf("GUC leaked across pool connection: expected empty, got %s", got)
+	}
+}
+
 // errSentinel is a simple error value used to simulate fn returning an error.
 var errSentinel = &sentinelError{}
 
