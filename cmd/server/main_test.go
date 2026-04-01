@@ -6,12 +6,24 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
+
+	"github.com/rian/infinite_brain/pkg/config"
 )
 
+func buildTestMux() http.Handler {
+	cfg := &config.Config{}
+	cfg.Auth.JWTSecret = "test-secret-that-is-32chars-long!!"
+	cfg.Auth.AccessTokenDuration = 15 * time.Minute
+	cfg.Auth.RefreshTokenDuration = 7 * 24 * time.Hour
+	cfg.Auth.ArgonPepper = "test-pepper-for-unit-tests-must-be-long"
+	return buildMux(cfg, nil, zerolog.Nop())
+}
+
 func TestBuildMux_HealthLive_Returns200(t *testing.T) {
-	srv := httptest.NewServer(buildMux(zerolog.Nop()))
+	srv := httptest.NewServer(buildTestMux())
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/health/live", nil)
@@ -35,7 +47,7 @@ func TestBuildMux_HealthLive_Returns200(t *testing.T) {
 }
 
 func TestBuildMux_HealthReady_Returns200(t *testing.T) {
-	srv := httptest.NewServer(buildMux(zerolog.Nop()))
+	srv := httptest.NewServer(buildTestMux())
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/health/ready", nil)
@@ -86,7 +98,7 @@ func TestParseAllowedOrigins_SingleOrigin_ReturnsSingleElement(t *testing.T) {
 }
 
 func TestBuildMux_Metrics_Returns200(t *testing.T) {
-	srv := httptest.NewServer(buildMux(zerolog.Nop()))
+	srv := httptest.NewServer(buildTestMux())
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/metrics", nil)
@@ -107,7 +119,7 @@ func TestBuildMux_Metrics_Returns200(t *testing.T) {
 }
 
 func TestBuildMux_Honeypot_Returns404(t *testing.T) {
-	srv := httptest.NewServer(buildMux(zerolog.Nop()))
+	srv := httptest.NewServer(buildTestMux())
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/.env", nil)
@@ -128,7 +140,7 @@ func TestBuildMux_Honeypot_Returns404(t *testing.T) {
 }
 
 func TestBuildMux_SecurityHeaders_Present(t *testing.T) {
-	srv := httptest.NewServer(buildMux(zerolog.Nop()))
+	srv := httptest.NewServer(buildTestMux())
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/health/live", nil)
@@ -156,7 +168,7 @@ func TestBuildMux_SecurityHeaders_Present(t *testing.T) {
 }
 
 func TestBuildMux_RequestID_PresentInResponse(t *testing.T) {
-	srv := httptest.NewServer(buildMux(zerolog.Nop()))
+	srv := httptest.NewServer(buildTestMux())
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/health/live", nil)

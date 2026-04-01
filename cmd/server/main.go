@@ -12,9 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
 	"github.com/rian/infinite_brain/api/gen/ping/v1/pingv1connect"
+	"github.com/rian/infinite_brain/internal/auth"
 	"github.com/rian/infinite_brain/internal/health"
 	"github.com/rian/infinite_brain/internal/ping"
 	"github.com/rian/infinite_brain/internal/security"
@@ -47,7 +49,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
-		Handler:      buildMux(logger, health.WithProbe("database", pool)),
+		Handler:      buildMux(cfg, pool, logger, health.WithProbe("database", pool)),
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
@@ -74,8 +76,22 @@ func main() {
 	logger.Info().Msg("server stopped")
 }
 
-func buildMux(logger zerolog.Logger, checkerOpts ...health.Option) http.Handler {
+func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, checkerOpts ...health.Option) http.Handler {
 	mux := http.NewServeMux()
+
+	// Auth routes — only wired when a pool is available (nil in unit tests).
+	if pool != nil {
+		signer := auth.NewSigner(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenDuration)
+		authRepo := auth.NewRepository(pool)
+		authSvc := auth.NewService(authRepo, signer, cfg.Auth.ArgonPepper, cfg.Auth.RefreshTokenDuration)
+		authHandler := auth.NewHandler(authSvc, logger)
+
+		mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+		mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+		mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+		mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+		mux.HandleFunc("GET /api/v1/auth/me", auth.Auth(signer)(http.HandlerFunc(authHandler.Me)).ServeHTTP)
+	}
 
 	// connect-go RPC handlers
 	mux.Handle(pingv1connect.NewPingServiceHandler(ping.NewHandler()))
