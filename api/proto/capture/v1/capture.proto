@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package capture.v1;
+
+option go_package = "github.com/rian/infinite_brain/api/gen/capture/v1;capturev1";
+
+// CaptureService handles quick-capture intake (email, webhook, voice).
+service CaptureService {
+  // Capture ingests a new item for processing.
+  rpc Capture(CaptureRequest) returns (CaptureResponse);
+  // GetCaptureStatus returns the processing status of a captured item.
+  rpc GetCaptureStatus(GetCaptureStatusRequest) returns (GetCaptureStatusResponse);
+}
+
+message CaptureRequest {
+  string source  = 1;
+  string content = 2;
+}
+
+message CaptureResponse {
+  string id = 1;
+}
+
+message GetCaptureStatusRequest {
+  string id = 1;
+}
+
+message GetCaptureStatusResponse {
+  string id     = 1;
+  string status = 2;
+}
