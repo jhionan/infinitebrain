@@ -9,13 +9,21 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/rian/infinite_brain/api/gen/ping/v1/pingv1connect"
 	"github.com/rian/infinite_brain/internal/health"
 	"github.com/rian/infinite_brain/internal/ping"
+	"github.com/rian/infinite_brain/internal/security"
+	"github.com/rian/infinite_brain/pkg/metrics"
+	"github.com/rian/infinite_brain/pkg/middleware"
 )
+
+const maxBodyBytes = 1 << 20 // 1 MiB
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -25,9 +33,11 @@ func main() {
 		port = "8080"
 	}
 
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      buildMux(),
+		Handler:      buildMux(logger),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -55,7 +65,7 @@ func main() {
 	log.Println("server stopped")
 }
 
-func buildMux() *http.ServeMux {
+func buildMux(logger zerolog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// connect-go RPC handlers
@@ -73,5 +83,39 @@ func buildMux() *http.ServeMux {
 		fmt.Fprintf(w, `{"status":"ok","service":"infinite-brain"}`) //nolint:errcheck
 	})
 
-	return mux
+	// Prometheus metrics
+	mux.Handle("/metrics", metrics.Handler())
+
+	// Honeypot traps — scanners and bots hitting these paths are recorded and can be blocked
+	honeypot := security.NewHandler(security.NoopRepository{}, logger)
+	for _, path := range []string{"/.env", "/.git/config", "/wp-admin", "/admin", "/phpMyAdmin"} {
+		mux.Handle(path, honeypot)
+	}
+
+	// Middleware chain (outermost → innermost)
+	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
+	var handler http.Handler = mux
+	handler = middleware.CORS(allowedOrigins)(handler)
+	handler = middleware.SecurityHeaders(handler)
+	handler = middleware.RequestID(handler)
+	handler = middleware.IPBlocker(security.NoopRepository{}, logger)(handler)
+	handler = http.MaxBytesHandler(handler, maxBodyBytes)
+
+	return handler
+}
+
+// parseAllowedOrigins splits a comma-separated ALLOWED_ORIGINS env var.
+// Returns an empty slice if the value is empty.
+func parseAllowedOrigins(raw string) []string {
+	if raw == "" {
+		return []string{}
+	}
+	parts := strings.Split(raw, ",")
+	origins := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			origins = append(origins, trimmed)
+		}
+	}
+	return origins
 }

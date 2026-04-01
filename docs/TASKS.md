@@ -88,9 +88,9 @@ Someday:  Post-MVP                 → clearly parked
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
 | T-112 | connect-go server (REST + gRPC + gRPC-Web, graceful shutdown) | `completed` | features/112-server/ | Single handler serves all three protocols; replaces Chi + separate gRPC server; buf + protovalidate |
-| T-103 | Protocol Buffers — service definitions + buf codegen | `in_progress` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
+| T-103 | Protocol Buffers — service definitions + buf codegen | `completed` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
 | T-110 | Health + readiness endpoints | `completed` | features/110-health/ | GET /health/live (liveness), GET /health/ready (readiness: DB + Valkey + migrations); used by k8s probes |
-| T-111 | Observability foundation | `planned` | features/111-observability/ | Correlation/trace IDs on every request; slog fields; OTEL traces to Tempo; Prometheus /metrics; request ID in response headers |
+| T-111 | Observability foundation | `completed` | features/111-observability/ | Correlation/trace IDs on every request; slog fields; OTEL traces to Tempo; Prometheus /metrics; request ID in response headers |
 | T-091 | CI pipeline (GitHub Actions) | `completed` | features/091-ci/ | test + lint + build + security scan; Go 1.26.1, pgvector/pgvector:pg18, valkey:9-alpine |
 
 ---
@@ -101,8 +101,8 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-098 | Security hardening middleware | `planned` | features/098-security/ | HTTP security headers; Valkey sliding-window rate limiter; account lockout; prompt injection guard (PromptGuard) |
-| T-099 | Honeypot endpoints | `planned` | features/099-honeypot/ | 8 fake endpoints; hit logging; progressive auto-block (2→24h, 5→7d, 10→permanent); fake .env with realistic credentials |
+| T-098 | Security hardening middleware | `completed` | features/098-security/ | HTTP security headers; Valkey sliding-window rate limiter; account lockout; prompt injection guard (PromptGuard) |
+| T-099 | Honeypot endpoints | `completed` | features/099-honeypot/ | 8 fake endpoints; hit logging; progressive auto-block (2→24h, 5→7d, 10→permanent); fake .env with realistic credentials |
 | T-104 | SOC2 + HIPAA compliance | `completed` | features/104-compliance/ | Field-level AES-256-GCM; OpenBao key management; tamper-evident audit log (hash chain); salt+pepper passwords; auto-rotation; BAA support; right to erasure |
 
 ---

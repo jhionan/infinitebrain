@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/rs/zerolog"
 )
 
 func TestBuildMux_HealthLive_Returns200(t *testing.T) {
-	srv := httptest.NewServer(buildMux())
+	srv := httptest.NewServer(buildMux(zerolog.Nop()))
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/health/live", nil)
@@ -33,7 +35,7 @@ func TestBuildMux_HealthLive_Returns200(t *testing.T) {
 }
 
 func TestBuildMux_HealthReady_Returns200(t *testing.T) {
-	srv := httptest.NewServer(buildMux())
+	srv := httptest.NewServer(buildMux(zerolog.Nop()))
 	defer srv.Close()
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/health/ready", nil)
