@@ -81,6 +81,7 @@ func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, che
 	mux := http.NewServeMux()
 
 	// Auth routes — only wired when a pool is available (nil in unit tests).
+	var orgRepo org.Repository
 	if pool != nil {
 		signer := auth.NewSigner(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenDuration)
 		authRepo := auth.NewRepository(pool)
@@ -93,7 +94,7 @@ func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, che
 		mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
 		mux.HandleFunc("GET /api/v1/auth/me", auth.Auth(signer)(http.HandlerFunc(authHandler.Me)).ServeHTTP)
 
-		orgRepo := org.NewRepository(pool)
+		orgRepo = org.NewRepository(pool)
 		orgSvc := org.NewService(orgRepo)
 		orgHandler := org.NewHandler(orgSvc, logger)
 		authed := auth.Auth(signer)
@@ -133,6 +134,9 @@ func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, che
 	// Middleware chain (outermost → innermost)
 	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
 	var handler http.Handler = mux
+	if orgRepo != nil {
+		handler = org.OrgResolver(orgRepo)(handler)
+	}
 	handler = middleware.CORS(allowedOrigins)(handler)
 	handler = middleware.SecurityHeaders(handler)
 	handler = middleware.RequestID(handler)
