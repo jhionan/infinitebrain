@@ -31,7 +31,7 @@ func TestRateLimit_AllowsRequestsUnderLimit(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.RemoteAddr = "1.2.3.4:5000"
 		rr := httptest.NewRecorder()
@@ -48,7 +48,7 @@ func TestRateLimit_Blocks429WhenLimitExceeded(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.RemoteAddr = "1.2.3.4:5000"
 		rr := httptest.NewRecorder()
