@@ -75,8 +75,8 @@ Someday:  Post-MVP                 → clearly parked
 |---|---|---|---|---|
 | T-002 | Core configuration system (cleanenv, env + yaml) | `completed` | features/002-config/ | pkg/config — 7 tests |
 | T-003 | Structured logger (slog) | `completed` | features/003-logger/ | pkg/logger — 4 tests |
-| T-004 | PostgreSQL 18.3 + Atlas migrations | `in_progress` | features/004-database/ | pgvector enabled; Atlas schema-as-code; reversible migrations |
-| T-005 | Valkey 9 connection pool | `planned` | features/005-valkey/ | Replaces Redis; pkg/cache; connection health check |
+| T-004 | PostgreSQL 18.3 + Atlas migrations | `completed` | features/004-database/ | pgvector enabled; Atlas schema-as-code; reversible migrations |
+| T-005 | Valkey 9 connection pool | `completed` | features/005-valkey/ | Replaces Redis; pkg/cache; connection health check |
 | T-090 | Docker Compose dev environment | `completed` | features/090-docker/ | PostgreSQL 18, Valkey 9, MinIO, OpenBao, Jaeger |
 
 ---
@@ -467,6 +467,8 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Completed | Notes |
 |---|---|---|---|
+| T-005 | Valkey 9 connection pool | 2026-04-01 | pkg/cache — 3 testcontainers integration tests pass; valkey-go v1.0.73 |
+| T-004 | PostgreSQL 18.3 + Atlas migrations | 2026-04-01 | pgvector, HNSW, RLS, FTS — all integration tests pass |
 | T-001 | Project setup: Go module, folder structure, Makefile | 2026-03-04 | Initial scaffold |
 | T-002 | Core configuration system | 2026-03-04 | pkg/config — 7 tests |
 | T-003 | Structured logger | 2026-03-04 | pkg/logger — 4 tests |
