@@ -19,6 +19,7 @@ func validEnv() map[string]string {
 		"DATABASE_URL":      "postgres://user:pass@localhost:5432/testdb",
 		"VALKEY_URL":        "valkey://localhost:6379",
 		"JWT_SECRET":        "super-secret-key-that-is-at-least-32-chars!!",
+		"ARGON_PEPPER":      "test-pepper-for-unit-tests-must-be-at-least-32-chars!!",
 		"ANTHROPIC_API_KEY": "sk-ant-test",
 		"S3_BUCKET":         "test-bucket",
 		"S3_ENDPOINT":       "http://localhost:9000",
