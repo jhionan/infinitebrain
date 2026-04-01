@@ -2,8 +2,11 @@ package org
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
+
+	apperrors "github.com/rian/infinite_brain/pkg/errors"
 )
 
 type orgContextKey struct{}
@@ -22,7 +25,11 @@ func OrgResolver(repo Repository) func(http.Handler) http.Handler {
 
 			o, err := repo.FindBySlug(r.Context(), slug)
 			if err != nil {
-				http.Error(w, `{"error":{"code":"NOT_FOUND","message":"organization not found"}}`, http.StatusNotFound)
+				if errors.Is(err, apperrors.ErrNotFound) {
+					http.Error(w, `{"error":{"code":"NOT_FOUND","message":"organization not found"}}`, http.StatusNotFound)
+				} else {
+					http.Error(w, `{"error":{"code":"INTERNAL","message":"internal server error"}}`, http.StatusInternalServerError)
+				}
 				return
 			}
 
