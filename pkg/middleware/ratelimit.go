@@ -8,8 +8,7 @@ import (
 
 // RateLimiter is the interface satisfied by cache.Store (and test mocks).
 type RateLimiter interface {
-	Incr(key string) int
-	Expire(key string, ttl time.Duration)
+	IncrWithExpire(key string, ttl time.Duration) int
 }
 
 // RateLimit returns a middleware that limits each client IP to limit requests
@@ -20,17 +19,10 @@ func RateLimit(store RateLimiter, limit int, window time.Duration) func(http.Han
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := realIP(r)
 			key := fmt.Sprintf("rl:%s", ip)
-
-			count := store.Incr(key)
-			if count == 1 {
-				store.Expire(key, window)
-			}
-
-			if count > limit {
+			if store.IncrWithExpire(key, window) > limit {
 				http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
 				return
 			}
-
 			next.ServeHTTP(w, r)
 		})
 	}

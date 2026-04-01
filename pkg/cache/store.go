@@ -1,3 +1,4 @@
+// Package cache provides a thread-safe in-memory counter store used for rate limiting.
 package cache
 
 import (
@@ -46,4 +47,18 @@ func (s *Store) Expire(key string, ttl time.Duration) {
 	if e, ok := s.entries[key]; ok {
 		e.expiresAt = time.Now().Add(ttl)
 	}
+}
+
+// IncrWithExpire increments the counter for key and, on the first increment,
+// sets the TTL to ttl. Returns the new counter value.
+func (s *Store) IncrWithExpire(key string, ttl time.Duration) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e, ok := s.entries[key]
+	if !ok || (!e.expiresAt.IsZero() && time.Now().After(e.expiresAt)) {
+		s.entries[key] = &entry{count: 1, expiresAt: time.Now().Add(ttl)}
+		return 1
+	}
+	e.count++
+	return e.count
 }

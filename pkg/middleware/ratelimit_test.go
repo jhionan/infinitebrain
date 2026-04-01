@@ -18,12 +18,10 @@ func newStubLimiter() *stubLimiter {
 	return &stubLimiter{counts: make(map[string]int)}
 }
 
-func (s *stubLimiter) Incr(key string) int {
+func (s *stubLimiter) IncrWithExpire(key string, _ time.Duration) int {
 	s.counts[key]++
 	return s.counts[key]
 }
-
-func (s *stubLimiter) Expire(_ string, _ time.Duration) {}
 
 func TestRateLimit_AllowsRequestsUnderLimit(t *testing.T) {
 	stub := newStubLimiter()
@@ -53,6 +51,9 @@ func TestRateLimit_Blocks429WhenLimitExceeded(t *testing.T) {
 		req.RemoteAddr = "1.2.3.4:5000"
 		rr := httptest.NewRecorder()
 		h.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Errorf("warm-up: got %d, want 200", rr.Code)
+		}
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
