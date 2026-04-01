@@ -87,9 +87,9 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-112 | connect-go server (REST + gRPC + gRPC-Web, graceful shutdown) | `planned` | features/112-server/ | Single handler serves all three protocols; replaces Chi + separate gRPC server; buf + protovalidate |
-| T-103 | Protocol Buffers — service definitions + buf codegen | `planned` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
-| T-110 | Health + readiness endpoints | `planned` | features/110-health/ | GET /health/live (liveness), GET /health/ready (readiness: DB + Valkey + migrations); used by k8s probes |
+| T-112 | connect-go server (REST + gRPC + gRPC-Web, graceful shutdown) | `completed` | features/112-server/ | Single handler serves all three protocols; replaces Chi + separate gRPC server; buf + protovalidate |
+| T-103 | Protocol Buffers — service definitions + buf codegen | `completed` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
+| T-110 | Health + readiness endpoints | `completed` | features/110-health/ | GET /health/live (liveness), GET /health/ready (readiness: DB + Valkey + migrations); used by k8s probes |
 | T-111 | Observability foundation | `planned` | features/111-observability/ | Correlation/trace IDs on every request; slog fields; OTEL traces to Tempo; Prometheus /metrics; request ID in response headers |
 | T-091 | CI pipeline (GitHub Actions) | `completed` | features/091-ci/ | test + lint + build + security scan; Go 1.26.1, pgvector/pgvector:pg18, valkey:9-alpine |
 
@@ -467,6 +467,9 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Completed | Notes |
 |---|---|---|---|
+| T-112 | connect-go Ping service handler | 2026-04-01 | internal/ping; unary handler; 2 integration tests |
+| T-110 | Health + readiness endpoints | 2026-04-01 | internal/health; GET /health/live, GET /health/ready |
+| T-103 | Protocol Buffers + buf infrastructure | 2026-04-01 | ping/v1/ping.proto; generated via buf |
 | T-005 | Valkey 9 connection pool | 2026-04-01 | pkg/cache — 3 testcontainers integration tests pass; valkey-go v1.0.73 |
 | T-004 | PostgreSQL 18.3 + Atlas migrations | 2026-04-01 | pgvector, HNSW, RLS, FTS — all integration tests pass |
 | T-001 | Project setup: Go module, folder structure, Makefile | 2026-03-04 | Initial scaffold |
