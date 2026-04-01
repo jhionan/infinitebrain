@@ -202,14 +202,8 @@ table "nodes" {
   }
   // HNSW approximate nearest-neighbour search for embeddings.
   // Parameters (m=16, ef_construction=64) are set post-migration via SQL.
+  // HNSW index created via raw SQL — Atlas does not support pgvector index types.
   // See db/migrations/002_nodes_hnsw.sql
-  index "nodes_embedding_hnsw_idx" {
-    on {
-      column = column.embedding
-      ops    = sql("vector_cosine_ops")
-    }
-    type = HNSW
-  }
 
   check "nodes_para_check" {
     expr = "para IS NULL OR para IN ('project', 'area', 'resource', 'archive')"
