@@ -41,6 +41,15 @@ table "orgs" {
     type    = text
     default = "personal"
   }
+  column "max_members" {
+    null = true
+    type = integer
+  }
+  column "settings" {
+    null    = false
+    type    = jsonb
+    default = sql("'{}'::jsonb")
+  }
   column "phi_enabled" {
     null    = false
     type    = boolean
@@ -73,7 +82,7 @@ table "orgs" {
     unique  = true
   }
   check "orgs_plan_check" {
-    expr = "plan IN ('personal', 'team', 'org', 'enterprise')"
+    expr = "plan IN ('personal', 'pro', 'teams', 'enterprise')"
   }
 }
 
