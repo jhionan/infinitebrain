@@ -1,4 +1,9 @@
-# T-100 — Zitadel SSO Integration
+# T-100 — Zitadel SSO / SAML / SCIM
+
+> **Tier: SaaS** — Interface and spec are open source. SSO, SAML 2.0, and SCIM provisioning
+> are Business and Enterprise tier features available on the managed platform only.
+> OSS builds use internal JWT auth (T-007). The `Authenticator` interface is the same —
+> the Zitadel implementation is in `infinitebrain-cloud`.
 
 ## Overview
 

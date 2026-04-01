@@ -1,5 +1,10 @@
 # T-126 — mTLS Internal Service Communication
 
+> **Tier: SaaS** — Interface and spec are open source. Mutual TLS with certificate
+> lifecycle management (OpenBao PKI backend) is an Enterprise tier feature available
+> on the managed platform only. OSS builds use standard TLS. The transport interface
+> is the same — the mTLS implementation is in `infinitebrain-cloud`.
+
 ## Overview
 
 Internal gRPC connections between services use mutual TLS. Every service presents a

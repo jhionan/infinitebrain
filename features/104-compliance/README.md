@@ -1,5 +1,10 @@
 # T-104 — Compliance: SOC2 + HIPAA + EU AI Act + GDPR
 
+> **Tier: SaaS** — Interface and spec are open source. Implementation lives in the private
+> `infinitebrain-cloud` module. OSS builds receive a no-op stub that satisfies the interface
+> but does not produce audit records, encrypt PHI, or enforce GDPR erasure.
+> Full implementation requires the managed platform or a commercial license.
+
 ## Overview
 
 Implement the technical controls required for:

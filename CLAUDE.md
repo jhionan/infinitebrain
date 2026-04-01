@@ -13,6 +13,56 @@ Before writing any code:
 
 ---
 
+## Open-Core Module Split
+
+Infinite Brain is **open-core**. The OSS repo (this one) contains everything except the
+compliance infrastructure implementation. Feature specs for SaaS-only features are public
+so the design is transparent — but the implementation lives in the private `infinitebrain-cloud`
+module.
+
+### How to identify SaaS-only features
+
+Any feature spec with this header is SaaS-only:
+
+```
+> **Tier: SaaS** — Interface and spec are open source. Implementation is in `infinitebrain-cloud`.
+```
+
+### Code convention for SaaS-only features
+
+Every SaaS-only feature follows the same pattern:
+
+```
+internal/<domain>/
+├── compliance.go          # Interface definition (OSS — public contract)
+├── compliance_noop.go     # No-op stub — compiled into OSS builds
+└── compliance_test.go     # Tests against the interface (OSS)
+
+# In the private infinitebrain-cloud module:
+internal/<domain>/
+└── compliance_impl.go     # Real implementation (private)
+```
+
+The no-op stub satisfies the interface so the OSS binary compiles and runs.
+At startup, if the cloud module is present, it registers the real implementations
+via the provider pattern. If not, the no-ops are used and compliance features
+are gracefully absent.
+
+### SaaS-only features (implementation in `infinitebrain-cloud`)
+
+| Task | Feature |
+|---|---|
+| T-104 | Tamper-evident audit log, PHI encryption, GDPR erasure tooling |
+| T-154 | EU AI Act usage register (append-only, certified) |
+| T-100 | SSO / SAML 2.0 / SCIM provisioning |
+| T-126 | mTLS (mutual TLS for enterprise service mesh) |
+
+All other features — including PromptGuard (T-177), anomaly detection (T-178),
+honeypot (T-099), canary tokens (T-130), and all security hardening (T-098) —
+are fully open source.
+
+---
+
 ## Core Philosophy
 
 **KISS**: The simplest solution that correctly solves the problem is always right.

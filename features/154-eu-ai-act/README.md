@@ -1,5 +1,10 @@
 # T-154 — EU AI Act Compliance (Regulation 2024/1689)
 
+> **Tier: SaaS** — Interface and spec are open source. The AI usage register implementation
+> (append-only, certified 3-year retention, REVOKE UPDATE/DELETE enforcement) lives in the
+> private `infinitebrain-cloud` module. OSS builds receive a no-op stub. Full compliance
+> register requires the managed platform or a commercial license.
+
 ## Overview
 
 The EU AI Act is the world's first comprehensive AI regulation. It applies to Infinite Brain
