@@ -15,7 +15,7 @@ WHERE id = $1
 -- name: CreateOrg :one
 INSERT INTO orgs (name, slug, plan)
 VALUES ($1, $2, $3)
-RETURNING id, name, slug, plan, phi_enabled, created_at, updated_at;
+RETURNING id, name, slug, plan, max_members, settings, phi_enabled, created_at, updated_at;
 
 -- name: CreateUser :one
 INSERT INTO users (org_id, email, display_name, role, password_hash, pepper_version)

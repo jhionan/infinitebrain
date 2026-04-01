@@ -1,6 +1,6 @@
 -- Migration 005 — Multi-tenancy: org membership + RLS.
 -- Adds max_members/settings to orgs, fixes plan CHECK, creates org_members table.
--- Generated from db/schema/003_multi_tenancy.hcl
+-- Generated from db/schema/005_multi_tenancy.hcl
 
 BEGIN;
 

@@ -24,7 +24,8 @@ RETURNING id, name, slug, plan, max_members, settings, phi_enabled, created_at, 
 -- name: SoftDeleteOrg :exec
 UPDATE orgs
 SET deleted_at = now(), updated_at = now()
-WHERE id = $1;
+WHERE id = $1
+  AND deleted_at IS NULL;
 
 -- name: AddOrgMember :exec
 INSERT INTO org_members (org_id, user_id, role, invited_by)
@@ -40,7 +41,7 @@ WHERE org_id = $1 AND user_id = $2;
 SELECT om.org_id, om.user_id, om.role, om.invited_by, om.joined_at,
        u.email, u.display_name
 FROM org_members om
-JOIN users u ON u.id = om.user_id
+JOIN users u ON u.id = om.user_id AND u.deleted_at IS NULL
 WHERE om.org_id = $1
 ORDER BY om.joined_at;
 
