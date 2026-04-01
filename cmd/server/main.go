@@ -18,6 +18,7 @@ import (
 	"github.com/rian/infinite_brain/api/gen/ping/v1/pingv1connect"
 	"github.com/rian/infinite_brain/internal/auth"
 	"github.com/rian/infinite_brain/internal/health"
+	"github.com/rian/infinite_brain/internal/org"
 	"github.com/rian/infinite_brain/internal/ping"
 	"github.com/rian/infinite_brain/internal/security"
 	"github.com/rian/infinite_brain/pkg/config"
@@ -91,6 +92,18 @@ func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, che
 		mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 		mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
 		mux.HandleFunc("GET /api/v1/auth/me", auth.Auth(signer)(http.HandlerFunc(authHandler.Me)).ServeHTTP)
+
+		orgRepo := org.NewRepository(pool)
+		orgSvc := org.NewService(orgRepo)
+		orgHandler := org.NewHandler(orgSvc, logger)
+		authed := auth.Auth(signer)
+
+		mux.HandleFunc("GET /api/v1/orgs/{slug}", orgHandler.GetOrg)
+		mux.HandleFunc("PUT /api/v1/orgs/{slug}", authed(http.HandlerFunc(orgHandler.UpdateOrg)).ServeHTTP)
+		mux.HandleFunc("GET /api/v1/orgs/{slug}/members", authed(http.HandlerFunc(orgHandler.ListMembers)).ServeHTTP)
+		mux.HandleFunc("POST /api/v1/orgs/{slug}/members", authed(http.HandlerFunc(orgHandler.AddMember)).ServeHTTP)
+		mux.HandleFunc("PUT /api/v1/orgs/{slug}/members/{userID}", authed(http.HandlerFunc(orgHandler.UpdateMemberRole)).ServeHTTP)
+		mux.HandleFunc("DELETE /api/v1/orgs/{slug}/members/{userID}", authed(http.HandlerFunc(orgHandler.RemoveMember)).ServeHTTP)
 	}
 
 	// connect-go RPC handlers
