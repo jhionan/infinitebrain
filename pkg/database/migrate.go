@@ -17,21 +17,32 @@ func ApplyMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	migrations := []string{
 		"001_core.sql",
 		"002_nodes.sql",
+		"003_security.sql",
+		"004_sessions.sql",
+		"005_multi_tenancy.sql",
 	}
-
-	dir := migrationsDir()
 
 	for _, name := range migrations {
-		path := filepath.Join(dir, name)
-		sql, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("read migration %s: %w", name, err)
-		}
-		if _, err := pool.Exec(ctx, string(sql)); err != nil {
-			return fmt.Errorf("apply migration %s: %w", name, err)
+		if err := ApplyMigration(ctx, pool, name); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+// ApplyMigration executes a single named SQL migration file.
+// name must be the bare filename (e.g. "001_core.sql"); the directory is
+// resolved relative to this source file so it works regardless of working dir.
+func ApplyMigration(ctx context.Context, pool *pgxpool.Pool, name string) error {
+	path := filepath.Join(migrationsDir(), name)
+	sql, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read migration %s: %w", name, err)
+	}
+	if _, err := pool.Exec(ctx, string(sql)); err != nil {
+		return fmt.Errorf("apply migration %s: %w", name, err)
+	}
 	return nil
 }
 

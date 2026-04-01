@@ -31,4 +31,13 @@ CREATE TABLE org_members (
 
 CREATE INDEX org_members_user_id_idx ON org_members (user_id);
 
+-- Row-Level Security on nodes --------------------------------------------------
+-- Enable RLS on nodes. The application sets app.current_org_id via WithOrgContext.
+-- Policy: every SELECT/INSERT/UPDATE/DELETE is automatically scoped to current org.
+
+ALTER TABLE nodes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY org_isolation ON nodes
+    USING (org_id = current_setting('app.current_org_id', true)::uuid);
+
 COMMIT;

@@ -58,3 +58,11 @@ table "org_members" {
     expr = "role IN ('owner', 'admin', 'editor', 'viewer', 'member')"
   }
 }
+
+// ── Row-Level Security ────────────────────────────────────────────────────────
+// Enable RLS on nodes and create the org isolation policy.
+// The application sets app.current_org_id per connection via WithOrgContext.
+// Using a non-superuser app role ensures RLS is never bypassed.
+//
+// NOTE: Atlas HCL does not natively support CREATE POLICY syntax.
+// The RLS enablement and policy creation lives in the SQL migration file.
