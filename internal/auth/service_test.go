@@ -184,6 +184,12 @@ func TestService_Refresh_ValidTokenReturnsNewPair(t *testing.T) {
 	if newPair.RefreshToken == pair.RefreshToken {
 		t.Error("Refresh should issue a new refresh token (rotation)")
 	}
+	if newPair.AccessToken == "" || newPair.RefreshToken == "" {
+		t.Error("new token pair fields must be non-empty")
+	}
+	if newPair.ExpiresIn <= 0 {
+		t.Error("ExpiresIn must be positive")
+	}
 }
 
 func TestService_Refresh_OldTokenInvalidAfterRotation(t *testing.T) {
