@@ -26,6 +26,16 @@ func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
+// Is reports whether this error matches target by comparing error codes.
+// This allows errors.Is(apperrors.ErrNotFound.Wrap(err), apperrors.ErrNotFound) to return true.
+func (e *AppError) Is(target error) bool {
+	var t *AppError
+	if errors.As(target, &t) {
+		return e.Code == t.Code
+	}
+	return false
+}
+
 // Wrap returns a new AppError wrapping an underlying error with additional context.
 func (e *AppError) Wrap(err error) *AppError {
 	return &AppError{
