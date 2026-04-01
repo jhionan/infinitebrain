@@ -103,7 +103,7 @@ Someday:  Post-MVP                 → clearly parked
 |---|---|---|---|---|
 | T-098 | Security hardening middleware | `planned` | features/098-security/ | HTTP security headers; Valkey sliding-window rate limiter; account lockout; prompt injection guard (PromptGuard) |
 | T-099 | Honeypot endpoints | `planned` | features/099-honeypot/ | 8 fake endpoints; hit logging; progressive auto-block (2→24h, 5→7d, 10→permanent); fake .env with realistic credentials |
-| T-104 | SOC2 + HIPAA compliance | `planned` | features/104-compliance/ | Field-level AES-256-GCM; OpenBao key management; tamper-evident audit log (hash chain); salt+pepper passwords; auto-rotation; BAA support; right to erasure |
+| T-104 | SOC2 + HIPAA compliance | `completed` | features/104-compliance/ | Field-level AES-256-GCM; OpenBao key management; tamper-evident audit log (hash chain); salt+pepper passwords; auto-rotation; BAA support; right to erasure |
 
 ---
 
