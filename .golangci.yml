@@ -82,5 +82,8 @@ issues:
     - path: db/sqlc/
       linters:
         - all
+    - path: api/gen/
+      linters:
+        - all
   max-issues-per-linter: 0
   max-same-issues: 0

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ping.v1;
+
+// PingService is a trivial echo service used to validate the connect-go stack.
+service PingService {
+  // Ping echoes the request message back in the response.
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// PingRequest carries the message to echo.
+message PingRequest {
+  string message = 1;
+}
+
+// PingResponse carries the echoed message.
+message PingResponse {
+  string message = 1;
+}
