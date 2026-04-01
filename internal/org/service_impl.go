@@ -44,6 +44,9 @@ func (s *serviceImpl) ListMembers(ctx context.Context, orgID uuid.UUID) ([]Membe
 }
 
 func (s *serviceImpl) AddMember(ctx context.Context, orgID, userID uuid.UUID, role string, inviterID uuid.UUID) error {
+	if err := validateRole(role); err != nil {
+		return err
+	}
 	o, err := s.repo.FindByID(ctx, orgID)
 	if err != nil {
 		return fmt.Errorf("get org for add member: %w", err)
@@ -52,13 +55,23 @@ func (s *serviceImpl) AddMember(ctx context.Context, orgID, userID uuid.UUID, ro
 	if err != nil {
 		return fmt.Errorf("count members: %w", err)
 	}
-	if err := CheckMemberLimit(o.Plan, count); err != nil {
+	// Per-org MaxMembers overrides the plan-level cap when set.
+	if o.MaxMembers != nil {
+		if int(count) >= *o.MaxMembers {
+			return apperrors.ErrPlanLimitReached.Wrap(
+				fmt.Errorf("org member limit of %d reached", *o.MaxMembers),
+			)
+		}
+	} else if err := CheckMemberLimit(o.Plan, count); err != nil {
 		return err
 	}
 	return s.repo.AddMember(ctx, orgID, userID, role, &inviterID)
 }
 
 func (s *serviceImpl) UpdateMemberRole(ctx context.Context, orgID, targetUserID, callerID uuid.UUID, role string) error {
+	if err := validateRole(role); err != nil {
+		return err
+	}
 	if err := s.requireRole(ctx, orgID, callerID, "admin"); err != nil {
 		return err
 	}
@@ -139,4 +152,15 @@ var roleRank = map[string]int{
 
 func hasAtLeastRole(actual, required string) bool {
 	return roleRank[actual] >= roleRank[required]
+}
+
+var validRoles = map[string]bool{
+	"owner": true, "admin": true, "editor": true, "viewer": true, "member": true,
+}
+
+func validateRole(role string) error {
+	if !validRoles[role] {
+		return apperrors.ErrValidation.Wrap(fmt.Errorf("invalid role %q", role))
+	}
+	return nil
 }

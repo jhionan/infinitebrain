@@ -160,8 +160,8 @@ func TestOrgService_RemoveMember_CannotRemoveLastOwner(t *testing.T) {
 	_ = repo.AddMember(context.Background(), o.ID, ownerID, "owner", nil)
 
 	err := svc.RemoveMember(context.Background(), o.ID, ownerID, ownerID)
-	if err == nil {
-		t.Fatal("expected error when removing last owner, got nil")
+	if !errors.Is(err, apperrors.ErrValidation) {
+		t.Errorf("expected ErrValidation when removing last owner, got %v", err)
 	}
 }
 
@@ -173,7 +173,7 @@ func TestOrgService_UpdateMemberRole_CannotDemoteLastOwner(t *testing.T) {
 	_ = repo.AddMember(context.Background(), o.ID, ownerID, "owner", nil)
 
 	err := svc.UpdateMemberRole(context.Background(), o.ID, ownerID, ownerID, "admin")
-	if err == nil {
-		t.Fatal("expected error when demoting last owner, got nil")
+	if !errors.Is(err, apperrors.ErrValidation) {
+		t.Errorf("expected ErrValidation when demoting last owner, got %v", err)
 	}
 }
