@@ -83,6 +83,11 @@ var (
 		Code:       "CONFLICT",
 		Message:    "resource already exists",
 	}
+	ErrPlanLimitReached = &AppError{
+		HTTPStatus: http.StatusPaymentRequired,
+		Code:       "PLAN_LIMIT_REACHED",
+		Message:    "plan limit reached",
+	}
 	ErrInternal = &AppError{
 		HTTPStatus: http.StatusInternalServerError,
 		Code:       "INTERNAL_ERROR",
