@@ -79,6 +79,10 @@ func (h *Handler) UpdateOrg(w http.ResponseWriter, r *http.Request) {
 
 // ListMembers handles GET /api/v1/orgs/{slug}/members
 func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.ClaimsFromContext(r.Context()); !ok {
+		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("no auth claims")))
+		return
+	}
 	slug := r.PathValue("slug")
 	o, err := h.svc.Get(r.Context(), slug)
 	if err != nil {
@@ -125,7 +129,11 @@ func (h *Handler) AddMember(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONError(w, apperrors.ErrValidation.Wrap(fmt.Errorf("invalid user_id")))
 		return
 	}
-	callerID, _ := uuid.Parse(claims.Subject)
+	callerID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(err))
+		return
+	}
 
 	if err := h.svc.AddMember(r.Context(), o.ID, userID, req.Role, callerID); err != nil {
 		middleware.JSONError(w, err)
@@ -154,7 +162,11 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONError(w, apperrors.ErrValidation.Wrap(fmt.Errorf("invalid userID")))
 		return
 	}
-	callerID, _ := uuid.Parse(claims.Subject)
+	callerID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(err))
+		return
+	}
 
 	var req struct {
 		Role string `json:"role"`
@@ -191,7 +203,11 @@ func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONError(w, apperrors.ErrValidation.Wrap(fmt.Errorf("invalid userID")))
 		return
 	}
-	callerID, _ := uuid.Parse(claims.Subject)
+	callerID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(err))
+		return
+	}
 
 	if err := h.svc.RemoveMember(r.Context(), o.ID, targetID, callerID); err != nil {
 		middleware.JSONError(w, err)

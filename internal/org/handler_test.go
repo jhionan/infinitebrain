@@ -109,6 +109,24 @@ func TestOrgHandler_AddMember_Returns204(t *testing.T) {
 	}
 }
 
+func TestOrgHandler_ListMembers_Returns401WithNoAuth(t *testing.T) {
+	h, repo := newOrgHandler()
+	o := &org.Org{ID: uuid.New(), Slug: "list-noauth", Plan: "teams", CreatedAt: time.Now()}
+	repo.seedOrg(o)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/orgs/{slug}/members", h.ListMembers)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orgs/list-noauth/members", nil)
+	// No auth claims injected
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", w.Code)
+	}
+}
+
 func TestOrgHandler_AddMember_Returns401WithNoAuth(t *testing.T) {
 	h, repo := newOrgHandler()
 	o := &org.Org{ID: uuid.New(), Slug: "noauth", Plan: "teams", CreatedAt: time.Now()}
