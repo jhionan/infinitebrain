@@ -150,7 +150,7 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-010 | Note model + CRUD API | `planned` | features/010-notes/ | Core capture unit; org-scoped; NodeAggregate (T-120); full test coverage |
+| T-010 | Note model + CRUD API | `completed` | features/010-notes/ | Core capture unit; org-scoped; NodeAggregate (T-120); full test coverage |
 | T-011 | Voice note upload + transcription (Whisper) | `planned` | features/011-voice-notes/ | S3 upload; River job for async transcription; result back-fills node content |
 | T-013 | Email capture (inbound webhook → note) | `planned` | features/013-email-capture/ | Postal / Mailgun inbound; parses headers + body; lands in inbox |
 | T-014 | Webhook capture endpoint (generic) | `planned` | features/014-webhooks/ | Generic POST /capture; any bot or integration sends here; HMAC signature validation |

@@ -18,6 +18,7 @@ import (
 	"github.com/rian/infinite_brain/api/gen/ping/v1/pingv1connect"
 	"github.com/rian/infinite_brain/internal/audit"
 	"github.com/rian/infinite_brain/internal/auth"
+	"github.com/rian/infinite_brain/internal/capture"
 	"github.com/rian/infinite_brain/internal/health"
 	"github.com/rian/infinite_brain/internal/org"
 	"github.com/rian/infinite_brain/internal/ping"
@@ -47,7 +48,6 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to database")
 	}
-	defer pool.Close()
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
@@ -71,10 +71,12 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		cancel()
+		pool.Close() // release connections before hard exit
 		logger.Error().Err(err).Msg("forced shutdown")
 		os.Exit(1)
 	}
 	cancel()
+	pool.Close()
 	logger.Info().Msg("server stopped")
 }
 
@@ -157,6 +159,11 @@ func registerAPIRoutes(mux *http.ServeMux, cfg *config.Config, pool *pgxpool.Poo
 		authed(requireManage(http.HandlerFunc(inviteHandler.CreateInvite))).ServeHTTP)
 	mux.HandleFunc("POST /api/v1/invites/{token}/accept",
 		authed(http.HandlerFunc(inviteHandler.AcceptInvite)).ServeHTTP)
+
+	captureRepo := capture.NewRepository(pool)
+	captureSvc := capture.NewService(captureRepo)
+	captureHandler := capture.NewHandler(captureSvc, logger)
+	capture.RegisterRoutes(mux, captureHandler, authed)
 
 	auditRepo := audit.NewRepository(pool)
 	return apiDeps{
