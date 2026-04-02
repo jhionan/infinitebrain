@@ -7,11 +7,41 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
 	"github.com/rian/infinite_brain/internal/auth"
 )
+
+// mockService is a minimal Service implementation for handler unit tests.
+// It delegates nothing — tests that need real logic use newTestService(newMockRepo()) instead.
+type mockService struct{}
+
+func (m *mockService) Register(_ context.Context, _, _, _ string) (*auth.TokenPair, error) {
+	return nil, nil
+}
+
+func (m *mockService) Login(_ context.Context, _, _ string) (*auth.TokenPair, error) {
+	return nil, nil
+}
+
+func (m *mockService) Refresh(_ context.Context, _ string) (*auth.TokenPair, error) {
+	return nil, nil
+}
+
+func (m *mockService) Logout(_ context.Context, _ string) error {
+	return nil
+}
+
+func (m *mockService) Me(_ context.Context, _ string) (*auth.UserProfile, error) {
+	return &auth.UserProfile{}, nil
+}
+
+func (m *mockService) GetUserOrgs(_ context.Context, _ uuid.UUID) ([]auth.OrgMembership, error) {
+	return []auth.OrgMembership{}, nil
+}
 
 func newTestHandler() *auth.Handler {
 	svc := newTestService(newMockRepo())
@@ -102,5 +132,57 @@ func TestHandler_Me_WithoutAuth_Returns401(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestAuthHandler_MyOrgs_Returns200WithClaims(t *testing.T) {
+	signer := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
+	token, err := signer.Sign(&auth.User{
+		ID:    uuid.New(),
+		OrgID: uuid.New(),
+		Email: "user@example.com",
+		Role:  "owner",
+	})
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	handler := auth.NewHandler(&mockService{}, zerolog.Nop())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/orgs", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	auth.Auth(signer)(http.HandlerFunc(handler.MyOrgs)).ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body)
+	}
+}
+
+func TestAuthHandler_MyOrgs_Returns401WithNoAuth(t *testing.T) {
+	handler := auth.NewHandler(&mockService{}, zerolog.Nop())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/orgs", nil)
+	rr := httptest.NewRecorder()
+	handler.MyOrgs(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
+
+func TestAuthHandler_MyPermissions_Returns200WithClaims(t *testing.T) {
+	signer := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
+	token, err := signer.Sign(&auth.User{
+		ID:    uuid.New(),
+		OrgID: uuid.New(),
+		Email: "user@example.com",
+		Role:  "editor",
+	})
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	handler := auth.NewHandler(&mockService{}, zerolog.Nop())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	auth.Auth(signer)(http.HandlerFunc(handler.MyPermissions)).ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body)
 	}
 }

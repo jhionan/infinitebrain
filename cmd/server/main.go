@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/rian/infinite_brain/api/gen/ping/v1/pingv1connect"
+	"github.com/rian/infinite_brain/internal/audit"
 	"github.com/rian/infinite_brain/internal/auth"
 	"github.com/rian/infinite_brain/internal/health"
 	"github.com/rian/infinite_brain/internal/org"
@@ -77,35 +78,16 @@ func main() {
 	logger.Info().Msg("server stopped")
 }
 
+// apiDeps holds the DB-backed dependencies returned from registerAPIRoutes.
+type apiDeps struct {
+	orgRepo       org.Repository
+	auditRecorder audit.Recorder
+}
+
 func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, checkerOpts ...health.Option) http.Handler {
 	mux := http.NewServeMux()
 
-	// Auth routes — only wired when a pool is available (nil in unit tests).
-	var orgRepo org.Repository
-	if pool != nil {
-		signer := auth.NewSigner(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenDuration)
-		authRepo := auth.NewRepository(pool)
-		authSvc := auth.NewService(authRepo, signer, cfg.Auth.ArgonPepper, cfg.Auth.RefreshTokenDuration)
-		authHandler := auth.NewHandler(authSvc, logger)
-
-		mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
-		mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-		mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
-		mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
-		mux.HandleFunc("GET /api/v1/auth/me", auth.Auth(signer)(http.HandlerFunc(authHandler.Me)).ServeHTTP)
-
-		orgRepo = org.NewRepository(pool)
-		orgSvc := org.NewService(orgRepo)
-		orgHandler := org.NewHandler(orgSvc, logger)
-		authed := auth.Auth(signer)
-
-		mux.HandleFunc("GET /api/v1/orgs/{slug}", orgHandler.GetOrg)
-		mux.HandleFunc("PUT /api/v1/orgs/{slug}", authed(http.HandlerFunc(orgHandler.UpdateOrg)).ServeHTTP)
-		mux.HandleFunc("GET /api/v1/orgs/{slug}/members", authed(http.HandlerFunc(orgHandler.ListMembers)).ServeHTTP)
-		mux.HandleFunc("POST /api/v1/orgs/{slug}/members", authed(http.HandlerFunc(orgHandler.AddMember)).ServeHTTP)
-		mux.HandleFunc("PUT /api/v1/orgs/{slug}/members/{userID}", authed(http.HandlerFunc(orgHandler.UpdateMemberRole)).ServeHTTP)
-		mux.HandleFunc("DELETE /api/v1/orgs/{slug}/members/{userID}", authed(http.HandlerFunc(orgHandler.RemoveMember)).ServeHTTP)
-	}
+	deps := registerAPIRoutes(mux, cfg, pool, logger)
 
 	// connect-go RPC handlers
 	mux.Handle(pingv1connect.NewPingServiceHandler(ping.NewHandler()))
@@ -131,19 +113,71 @@ func buildMux(cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger, che
 		mux.Handle(path, honeypot)
 	}
 
-	// Middleware chain (outermost → innermost)
+	return applyMiddleware(mux, deps, logger)
+}
+
+// registerAPIRoutes wires all DB-backed API routes into mux.
+// Returns nil orgRepo / NoopRecorder when pool is nil (unit-test mode).
+func registerAPIRoutes(mux *http.ServeMux, cfg *config.Config, pool *pgxpool.Pool, logger zerolog.Logger) apiDeps {
+	if pool == nil {
+		return apiDeps{auditRecorder: audit.NoopRecorder{}}
+	}
+
+	signer := auth.NewSigner(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenDuration)
+	authed := auth.Auth(signer)
+
+	authRepo := auth.NewRepository(pool)
+	authSvc := auth.NewService(authRepo, signer, cfg.Auth.ArgonPepper, cfg.Auth.RefreshTokenDuration)
+	authHandler := auth.NewHandler(authSvc, logger)
+
+	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+	mux.HandleFunc("GET /api/v1/auth/me", authed(http.HandlerFunc(authHandler.Me)).ServeHTTP)
+	mux.HandleFunc("GET /api/v1/me/orgs", authed(http.HandlerFunc(authHandler.MyOrgs)).ServeHTTP)
+	mux.HandleFunc("GET /api/v1/me/permissions", authed(http.HandlerFunc(authHandler.MyPermissions)).ServeHTTP)
+
+	orgRepo := org.NewRepository(pool)
+	orgSvc := org.NewService(orgRepo)
+	orgHandler := org.NewHandler(orgSvc, logger)
+
+	mux.HandleFunc("GET /api/v1/orgs/{slug}", orgHandler.GetOrg)
+	mux.HandleFunc("PUT /api/v1/orgs/{slug}", authed(http.HandlerFunc(orgHandler.UpdateOrg)).ServeHTTP)
+	mux.HandleFunc("GET /api/v1/orgs/{slug}/members", authed(http.HandlerFunc(orgHandler.ListMembers)).ServeHTTP)
+	mux.HandleFunc("POST /api/v1/orgs/{slug}/members", authed(http.HandlerFunc(orgHandler.AddMember)).ServeHTTP)
+	mux.HandleFunc("PUT /api/v1/orgs/{slug}/members/{userID}", authed(http.HandlerFunc(orgHandler.UpdateMemberRole)).ServeHTTP)
+	mux.HandleFunc("DELETE /api/v1/orgs/{slug}/members/{userID}", authed(http.HandlerFunc(orgHandler.RemoveMember)).ServeHTTP)
+
+	inviteRepo := org.NewInviteRepository(pool)
+	inviteSvc := org.NewInviteService(inviteRepo, orgRepo)
+	inviteHandler := org.NewInviteHandler(inviteSvc, logger)
+	requireManage := auth.Require(auth.PermManageMembers)
+	mux.HandleFunc("POST /api/v1/orgs/{slug}/invites",
+		authed(requireManage(http.HandlerFunc(inviteHandler.CreateInvite))).ServeHTTP)
+	mux.HandleFunc("POST /api/v1/invites/{token}/accept",
+		authed(http.HandlerFunc(inviteHandler.AcceptInvite)).ServeHTTP)
+
+	auditRepo := audit.NewRepository(pool)
+	return apiDeps{
+		orgRepo:       orgRepo,
+		auditRecorder: audit.NewRecorder(auditRepo),
+	}
+}
+
+// applyMiddleware wraps handler with the full middleware stack.
+func applyMiddleware(mux *http.ServeMux, deps apiDeps, logger zerolog.Logger) http.Handler {
 	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
 	var handler http.Handler = mux
-	if orgRepo != nil {
-		handler = org.OrgResolver(orgRepo)(handler)
+	if deps.orgRepo != nil {
+		handler = org.OrgResolver(deps.orgRepo)(handler)
 	}
+	handler = audit.Middleware(deps.auditRecorder)(handler)
 	handler = middleware.CORS(allowedOrigins)(handler)
 	handler = middleware.SecurityHeaders(handler)
 	handler = middleware.RequestID(handler)
 	handler = middleware.IPBlocker(security.NoopRepository{}, logger)(handler)
-	handler = http.MaxBytesHandler(handler, maxBodyBytes)
-
-	return handler
+	return http.MaxBytesHandler(handler, maxBodyBytes)
 }
 
 // parseAllowedOrigins splits a comma-separated ALLOWED_ORIGINS env var.

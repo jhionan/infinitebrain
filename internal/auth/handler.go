@@ -126,3 +126,35 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 	middleware.JSON(w, http.StatusOK, profile)
 }
+
+// MyOrgs handles GET /api/v1/me/orgs — lists all orgs the caller belongs to.
+// Requires Auth middleware.
+func (h *Handler) MyOrgs(w http.ResponseWriter, r *http.Request) {
+	claims, ok := ClaimsFromContext(r.Context())
+	if !ok {
+		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
+		return
+	}
+	orgs, err := h.svc.GetUserOrgs(r.Context(), claims.UserID)
+	if err != nil {
+		middleware.JSONError(w, err)
+		return
+	}
+	middleware.JSON(w, http.StatusOK, orgs)
+}
+
+// MyPermissions handles GET /api/v1/me/permissions — returns the caller's
+// permission list for the current org (derived from their role in the JWT).
+// Requires Auth middleware. No DB call needed — role is in the JWT.
+func (h *Handler) MyPermissions(w http.ResponseWriter, r *http.Request) {
+	claims, ok := ClaimsFromContext(r.Context())
+	if !ok {
+		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
+		return
+	}
+	perms := PermissionsForRole(claims.Role)
+	middleware.JSON(w, http.StatusOK, map[string]any{
+		"role":        claims.Role,
+		"permissions": perms,
+	})
+}

@@ -17,4 +17,6 @@ type Repository interface {
 	FindSessionByTokenHash(ctx context.Context, tokenHash string) (*Session, error)
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteSessionsByUserID(ctx context.Context, userID uuid.UUID) error
+	// GetUserOrgs returns all orgs the user belongs to with their role in each.
+	GetUserOrgs(ctx context.Context, userID uuid.UUID) ([]OrgMembership, error)
 }

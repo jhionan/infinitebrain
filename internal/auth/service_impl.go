@@ -130,6 +130,15 @@ func (s *serviceImpl) Me(ctx context.Context, userID string) (*UserProfile, erro
 	}, nil
 }
 
+// GetUserOrgs returns all orgs the user belongs to.
+func (s *serviceImpl) GetUserOrgs(ctx context.Context, userID uuid.UUID) ([]OrgMembership, error) {
+	orgs, err := s.repo.GetUserOrgs(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user orgs: %w", err)
+	}
+	return orgs, nil
+}
+
 // issueTokenPair creates a new access token + refresh token session.
 func (s *serviceImpl) issueTokenPair(ctx context.Context, user *User) (*TokenPair, error) {
 	accessToken, err := s.signer.Sign(user)

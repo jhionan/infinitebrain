@@ -45,3 +45,12 @@ type UserProfile struct {
 	Role        string    `json:"role"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+// OrgMembership is a summary of one org the user belongs to, returned by GetUserOrgs.
+type OrgMembership struct {
+	OrgID uuid.UUID `json:"org_id"`
+	Name  string    `json:"name"`
+	Slug  string    `json:"slug"`
+	Plan  string    `json:"plan"`
+	Role  string    `json:"role"`
+}

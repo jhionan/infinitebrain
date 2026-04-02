@@ -94,6 +94,10 @@ func (m *mockRepository) DeleteSessionsByUserID(_ context.Context, userID uuid.U
 	return nil
 }
 
+func (m *mockRepository) GetUserOrgs(_ context.Context, _ uuid.UUID) ([]auth.OrgMembership, error) {
+	return []auth.OrgMembership{}, nil
+}
+
 func newTestService(repo auth.Repository) auth.Service {
 	signer := auth.NewSigner("test-secret-that-is-32chars-long!!", 15*time.Minute)
 	return auth.NewService(repo, signer, "test-pepper", 7*24*time.Hour)
