@@ -43,11 +43,21 @@ type updateNoteBody struct {
 	Tags    []string `json:"tags"`
 }
 
+// mustClaims extracts JWT claims from the request context.
+// Writes a 401 response and returns false if claims are absent.
+func (h *Handler) mustClaims(w http.ResponseWriter, r *http.Request) (*auth.Claims, bool) {
+	c, ok := auth.ClaimsFromContext(r.Context())
+	if !ok {
+		middleware.JSONError(w, apperrors.ErrUnauthorized)
+		return nil, false
+	}
+	return c, true
+}
+
 // Create handles POST /api/v1/notes.
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	var body createNoteBody
@@ -66,9 +76,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /api/v1/notes/{id}.
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	noteID, err := uuid.Parse(r.PathValue("id"))
@@ -86,9 +95,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 // List handles GET /api/v1/notes.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	page, pageSize := parsePagination(r)
@@ -102,9 +110,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 // Inbox handles GET /api/v1/inbox.
 func (h *Handler) Inbox(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	page, pageSize := parsePagination(r)
@@ -118,9 +125,8 @@ func (h *Handler) Inbox(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PATCH /api/v1/notes/{id}.
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	noteID, err := uuid.Parse(r.PathValue("id"))
@@ -144,9 +150,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/v1/notes/{id}.
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	noteID, err := uuid.Parse(r.PathValue("id"))
@@ -163,9 +168,8 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // Archive handles POST /api/v1/notes/{id}/archive.
 func (h *Handler) Archive(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := h.mustClaims(w, r)
 	if !ok {
-		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
 	noteID, err := uuid.Parse(r.PathValue("id"))
