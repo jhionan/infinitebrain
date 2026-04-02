@@ -40,6 +40,9 @@ db/sqlc/*.go
 # Logs
 *.log
 
+# Git worktrees
+.worktrees/
+
 # Private research, brainstorms, and scratch notes (never public)
 docs/private/
 docs/*.private.md
