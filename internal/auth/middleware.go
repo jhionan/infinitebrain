@@ -42,6 +42,13 @@ func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
 	return claims, ok
 }
 
+// ContextWithClaims returns a copy of ctx with claims injected.
+// Used in tests and packages (like audit) that need a claims-bearing context
+// without going through the Auth middleware's HTTP layer.
+func ContextWithClaims(ctx context.Context, claims *Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, claims)
+}
+
 // extractBearer returns the token from a "Bearer <token>" header, or empty string.
 func extractBearer(header string) string {
 	if !strings.HasPrefix(header, "Bearer ") {
