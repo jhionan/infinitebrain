@@ -29,7 +29,14 @@ func migrationsDir() string {
 
 func applyAuthMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	dir := migrationsDir()
-	for _, name := range []string{"001_core.sql", "004_sessions.sql"} {
+	for _, name := range []string{
+		"001_core.sql",
+		"002_nodes.sql",
+		"003_security.sql",
+		"004_sessions.sql",
+		"005_multi_tenancy.sql",
+		"006_rbac.sql",
+	} {
 		sql, err := os.ReadFile(filepath.Join(dir, name))
 		if err != nil {
 			return err
