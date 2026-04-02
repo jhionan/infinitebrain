@@ -46,3 +46,8 @@ DELETE FROM sessions WHERE user_id = $1;
 
 -- name: DeleteExpiredSessions :exec
 DELETE FROM sessions WHERE expires_at < now();
+
+-- name: CreateOrgUnit :one
+INSERT INTO org_units (org_id, name, unit_type)
+VALUES ($1, $2, $3)
+RETURNING id, org_id, parent_unit_id, name, unit_type, created_at, updated_at, deleted_at;

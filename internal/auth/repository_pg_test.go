@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/rian/infinite_brain/internal/auth"
-	apperrors "github.com/rian/infinite_brain/pkg/errors"
 	"github.com/rian/infinite_brain/pkg/database"
+	apperrors "github.com/rian/infinite_brain/pkg/errors"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 // migrationsDir resolves the path to db/migrations/ relative to this test file.
@@ -201,6 +201,27 @@ func TestPgRepository_DeleteSession_RemovesSession(t *testing.T) {
 	_, err := repo.FindSessionByTokenHash(context.Background(), "tokentorevoke")
 	if !errors.Is(err, apperrors.ErrNotFound) {
 		t.Errorf("expected ErrNotFound after deletion, got %v", err)
+	}
+}
+
+func TestPgRepository_Register_CreatesRootOrgUnit(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := auth.NewRepository(pool)
+
+	_, err := repo.Register(context.Background(), "unitcheck@example.com", "UnitCheck", "hash", 1)
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	var count int
+	err = pool.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM org_units WHERE unit_type = 'root' AND deleted_at IS NULL`,
+	).Scan(&count)
+	if err != nil {
+		t.Fatalf("query org_units: %v", err)
+	}
+	if count == 0 {
+		t.Error("expected at least one root org_unit after Register")
 	}
 }
 

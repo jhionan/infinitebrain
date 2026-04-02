@@ -61,6 +61,14 @@ func (r *pgRepository) Register(ctx context.Context, email, displayName, passwor
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
+	if _, err := qtx.CreateOrgUnit(ctx, sqlcdb.CreateOrgUnitParams{
+		OrgID:    org.ID,
+		Name:     "root",
+		UnitType: "root",
+	}); err != nil {
+		return nil, fmt.Errorf("create root org unit: %w", err)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit register tx: %w", err)
 	}
