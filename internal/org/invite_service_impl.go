@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rian/infinite_brain/internal/auth"
@@ -38,6 +40,7 @@ func (s *inviteServiceImpl) CreateInvite(ctx context.Context, orgID uuid.UUID, e
 		Role:      role,
 		InvitedBy: callerID,
 		Token:     token,
+		ExpiresAt: time.Now().UTC().Add(7 * 24 * time.Hour),
 	}
 	created, err := s.invites.Create(ctx, inv)
 	if err != nil {
@@ -51,12 +54,14 @@ func (s *inviteServiceImpl) AcceptInvite(ctx context.Context, token string, user
 	if err != nil {
 		return fmt.Errorf("find invite by token: %w", err)
 	}
+	// Accept first — the DB guard (AND accepted_at IS NULL) is the atomic lock that
+	// prevents double-acceptance under concurrent requests.
+	if err := s.invites.Accept(ctx, inv.ID); err != nil {
+		return fmt.Errorf("marking invite accepted: %w", err)
+	}
 	callerRef := inv.InvitedBy
 	if err := s.orgs.AddMember(ctx, inv.OrgID, userID, inv.Role, &callerRef); err != nil {
 		return fmt.Errorf("adding member via invite: %w", err)
-	}
-	if err := s.invites.Accept(ctx, inv.ID); err != nil {
-		return fmt.Errorf("marking invite accepted: %w", err)
 	}
 	return nil
 }
@@ -64,7 +69,10 @@ func (s *inviteServiceImpl) AcceptInvite(ctx context.Context, token string, user
 func (s *inviteServiceImpl) requireManageMembers(ctx context.Context, orgID, callerID uuid.UUID) error {
 	member, err := s.orgs.FindMember(ctx, orgID, callerID)
 	if err != nil {
-		return apperrors.ErrForbidden.Wrap(fmt.Errorf("caller not a member"))
+		if errors.Is(err, apperrors.ErrNotFound) {
+			return apperrors.ErrForbidden.Wrap(fmt.Errorf("caller not a member of org"))
+		}
+		return fmt.Errorf("looking up org membership: %w", err)
 	}
 	if !auth.Can(member.Role, auth.PermManageMembers) {
 		return apperrors.ErrForbidden.Wrap(fmt.Errorf("role %q cannot manage members", member.Role))

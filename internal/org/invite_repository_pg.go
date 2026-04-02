@@ -48,7 +48,11 @@ func (r *pgInviteRepository) FindByToken(ctx context.Context, token string) (*In
 }
 
 func (r *pgInviteRepository) Accept(ctx context.Context, id uuid.UUID) error {
-	if err := r.queries.AcceptOrgInvite(ctx, pgtype.UUID{Bytes: id, Valid: true}); err != nil {
+	_, err := r.queries.AcceptOrgInvite(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperrors.ErrConflict.Wrap(fmt.Errorf("invite already accepted"))
+		}
 		return fmt.Errorf("accept org invite: %w", err)
 	}
 	return nil

@@ -135,7 +135,7 @@ func TestHandler_Me_WithoutAuth_Returns401(t *testing.T) {
 	}
 }
 
-func TestAuthHandler_MyOrgs_Returns200WithClaims(t *testing.T) {
+func TestHandler_MyOrgs_WithValidClaims_Returns200(t *testing.T) {
 	signer := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
 	token, err := signer.Sign(&auth.User{
 		ID:    uuid.New(),
@@ -156,7 +156,7 @@ func TestAuthHandler_MyOrgs_Returns200WithClaims(t *testing.T) {
 	}
 }
 
-func TestAuthHandler_MyOrgs_Returns401WithNoAuth(t *testing.T) {
+func TestHandler_MyOrgs_WithNoAuth_Returns401(t *testing.T) {
 	handler := auth.NewHandler(&mockService{}, zerolog.Nop())
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/orgs", nil)
 	rr := httptest.NewRecorder()
@@ -166,7 +166,7 @@ func TestAuthHandler_MyOrgs_Returns401WithNoAuth(t *testing.T) {
 	}
 }
 
-func TestAuthHandler_MyPermissions_Returns200WithClaims(t *testing.T) {
+func TestHandler_MyPermissions_WithEditorRole_Returns200(t *testing.T) {
 	signer := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
 	token, err := signer.Sign(&auth.User{
 		ID:    uuid.New(),
@@ -184,5 +184,120 @@ func TestAuthHandler_MyPermissions_Returns200WithClaims(t *testing.T) {
 	auth.Auth(signer)(http.HandlerFunc(handler.MyPermissions)).ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body)
+	}
+}
+
+func TestHandler_MyPermissions_WithNoAuth_Returns401(t *testing.T) {
+	handler := auth.NewHandler(&mockService{}, zerolog.Nop())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me/permissions", nil)
+	rr := httptest.NewRecorder()
+	handler.MyPermissions(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
+
+func TestHandler_Refresh_ValidToken_Returns200(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	if _, err := svc.Register(context.Background(), "refresh@example.com", "User", "password123"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+	pair, err := svc.Login(context.Background(), "refresh@example.com", "password123")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+	h := auth.NewHandler(svc, zerolog.Nop())
+
+	body := `{"refresh_token":"` + pair.RefreshToken + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.Refresh(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_Refresh_InvalidBody_Returns400(t *testing.T) {
+	h := newTestHandler()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", strings.NewReader("not-json"))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.Refresh(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestHandler_Logout_ValidToken_Returns204(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	if _, err := svc.Register(context.Background(), "logout@example.com", "User", "password123"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+	pair, err := svc.Login(context.Background(), "logout@example.com", "password123")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+	h := auth.NewHandler(svc, zerolog.Nop())
+
+	body := `{"refresh_token":"` + pair.RefreshToken + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.Logout(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Errorf("status = %d, want 204; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandler_Logout_InvalidBody_Returns400(t *testing.T) {
+	h := newTestHandler()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader("not-json"))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.Logout(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestHandler_Me_WithValidClaims_Returns200(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	pair, err := svc.Register(context.Background(), "me@example.com", "MeUser", "password123")
+	if err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+	h := auth.NewHandler(svc, zerolog.Nop())
+
+	signer := auth.NewSigner("test-secret-that-is-32chars-long!!", 15*time.Minute)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
+	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	rr := httptest.NewRecorder()
+	auth.Auth(signer)(http.HandlerFunc(h.Me)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body)
+	}
+}
+
+func TestHandler_Register_ShortPassword_Returns422(t *testing.T) {
+	h := newTestHandler()
+	body := `{"email":"short@example.com","display_name":"Short","password":"abc"}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.Register(w, req)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422", w.Code)
 	}
 }

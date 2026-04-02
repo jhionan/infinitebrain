@@ -127,6 +127,24 @@ func (r *pgRepository) DeleteSessionsByUserID(ctx context.Context, userID uuid.U
 	return r.queries.DeleteSessionsByUserID(ctx, pgtype.UUID{Bytes: userID, Valid: true})
 }
 
+func (r *pgRepository) GetUserOrgs(ctx context.Context, userID uuid.UUID) ([]OrgMembership, error) {
+	rows, err := r.queries.GetUserOrgs(ctx, pgtype.UUID{Bytes: userID, Valid: true})
+	if err != nil {
+		return nil, fmt.Errorf("get user orgs: %w", err)
+	}
+	orgs := make([]OrgMembership, len(rows))
+	for i, row := range rows {
+		orgs[i] = OrgMembership{
+			OrgID: row.ID.Bytes,
+			Name:  row.Name,
+			Slug:  row.Slug,
+			Plan:  row.Plan,
+			Role:  row.Role,
+		}
+	}
+	return orgs, nil
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 func mapCreateUserRow(row sqlcdb.CreateUserRow) *User {

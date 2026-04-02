@@ -247,6 +247,31 @@ func TestService_Logout_AlreadyExpiredTokenIsNoOp(t *testing.T) {
 	}
 }
 
+func TestService_GetUserOrgs_ReturnsForbiddenForWrongUser(t *testing.T) {
+	repo := newMockRepo()
+	svc := newTestService(repo)
+
+	// Build a context with claims for userA.
+	signerA := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
+	userA := uuid.New()
+	token, err := signerA.Sign(&auth.User{ID: userA, OrgID: uuid.New(), Email: "a@a.com", Role: "editor"})
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	claims, err := signerA.Verify(token)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	ctx := auth.ContextWithClaims(context.Background(), claims)
+
+	// Try to query a different user's orgs.
+	userB := uuid.New()
+	_, err = svc.GetUserOrgs(ctx, userB)
+	if !errors.Is(err, apperrors.ErrForbidden) {
+		t.Errorf("expected ErrForbidden, got %v", err)
+	}
+}
+
 func TestService_Me_ReturnsUserProfile(t *testing.T) {
 	repo := newMockRepo()
 	svc := newTestService(repo)
@@ -271,5 +296,109 @@ func TestService_Me_ReturnsUserProfile(t *testing.T) {
 	}
 	if profile.DisplayName != "Grace" {
 		t.Errorf("DisplayName = %q, want Grace", profile.DisplayName)
+	}
+}
+
+func TestService_Me_InvalidUserIDReturnsValidation(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	_, err := svc.Me(context.Background(), "not-a-uuid")
+	if !errors.Is(err, apperrors.ErrValidation) {
+		t.Errorf("expected ErrValidation, got %v", err)
+	}
+}
+
+func TestService_Register_ShortPasswordReturnsValidation(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	_, err := svc.Register(context.Background(), "short@test.com", "Short", "abc")
+	if !errors.Is(err, apperrors.ErrValidation) {
+		t.Errorf("expected ErrValidation for short password, got %v", err)
+	}
+}
+
+func TestService_Register_EmptyFieldsReturnsValidation(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	tests := []struct {
+		name     string
+		email    string
+		dispName string
+		password string
+	}{
+		{"empty email", "", "Alice", "pass12345"},
+		{"empty displayName", "a@b.com", "", "pass12345"},
+		{"empty password", "a@b.com", "Alice", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := svc.Register(context.Background(), tt.email, tt.dispName, tt.password)
+			if !errors.Is(err, apperrors.ErrValidation) {
+				t.Errorf("expected ErrValidation, got %v", err)
+			}
+		})
+	}
+}
+
+func TestService_GetUserOrgs_SameUserReturnsOrgs(t *testing.T) {
+	repo := newMockRepo()
+	svc := newTestService(repo)
+
+	signer := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
+	userID := uuid.New()
+	token, err := signer.Sign(&auth.User{ID: userID, OrgID: uuid.New(), Email: "h@h.com", Role: "owner"})
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	claims, err := signer.Verify(token)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	ctx := auth.ContextWithClaims(context.Background(), claims)
+
+	orgs, err := svc.GetUserOrgs(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetUserOrgs: %v", err)
+	}
+	if orgs == nil {
+		t.Error("expected non-nil orgs slice")
+	}
+}
+
+func TestService_Refresh_InvalidTokenReturnsUnauthorized(t *testing.T) {
+	svc := newTestService(newMockRepo())
+	_, err := svc.Refresh(context.Background(), "bogus-refresh-token")
+	if !errors.Is(err, apperrors.ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+// mockRepoFailCreateSession wraps mockRepository but fails on CreateSession.
+type mockRepoFailCreateSession struct {
+	mockRepository
+}
+
+func (m *mockRepoFailCreateSession) CreateSession(_ context.Context, _ *auth.Session) (*auth.Session, error) {
+	return nil, errors.New("db connection refused")
+}
+
+func TestService_Register_CreateSessionFailureReturnsError(t *testing.T) {
+	repo := &mockRepoFailCreateSession{mockRepository: *newMockRepo()}
+	svc := newTestService(repo)
+	_, err := svc.Register(context.Background(), "failsession@test.com", "Fail", "pass12345")
+	if err == nil {
+		t.Fatal("expected error when CreateSession fails, got nil")
+	}
+}
+
+func TestService_Login_CreateSessionFailureReturnsError(t *testing.T) {
+	repo := &mockRepoFailCreateSession{mockRepository: *newMockRepo()}
+	// Pre-seed the user directly via the embedded mockRepository.
+	svc := newTestService(&repo.mockRepository)
+	if _, err := svc.Register(context.Background(), "faillogin@test.com", "Fail", "pass12345"); err != nil {
+		t.Fatalf("setup Register: %v", err)
+	}
+	// Now swap to the failing repo.
+	svc2 := newTestService(repo)
+	_, err := svc2.Login(context.Background(), "faillogin@test.com", "pass12345")
+	if err == nil {
+		t.Fatal("expected error when CreateSession fails, got nil")
 	}
 }

@@ -18,6 +18,8 @@ import (
 	apperrors "github.com/rian/infinite_brain/pkg/errors"
 )
 
+const testJWTSigningKey = "test-only-signing-key-not-for-production-xxxxxxxx"
+
 type mockInviteSvc struct {
 	createErr error
 	acceptErr error
@@ -48,7 +50,7 @@ func (m *mockInviteSvc) AcceptInvite(_ context.Context, token string, _ uuid.UUI
 }
 
 // makeSignedRequest creates an HTTP request with JWT claims injected into context.
-func makeSignedRequest(t *testing.T, method, path string, body any, role string) *http.Request {
+func makeSignedRequest(t *testing.T, method, path string, body any, role string) *http.Request { //nolint:unparam
 	t.Helper()
 	var bodyBytes []byte
 	if body != nil {
@@ -60,7 +62,7 @@ func makeSignedRequest(t *testing.T, method, path string, body any, role string)
 	}
 	req := httptest.NewRequest(method, path, bytes.NewReader(bodyBytes))
 	if role != "" {
-		signer := auth.NewSigner("supersecretjwtkey12345678901234567890", time.Hour)
+		signer := auth.NewSigner(testJWTSigningKey, time.Hour)
 		token, err := signer.Sign(&auth.User{
 			ID:    uuid.New(),
 			OrgID: uuid.New(),
@@ -142,5 +144,80 @@ func TestInviteHandler_AcceptInvite_Returns404ForBadToken(t *testing.T) {
 
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d: %s", rr.Code, rr.Body)
+	}
+}
+
+func TestInviteHandler_AcceptInvite_Returns401WithNoAuth(t *testing.T) {
+	handler := org.NewInviteHandler(&mockInviteSvc{}, zerolog.Nop())
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/invites/some-token/accept", nil)
+	req.SetPathValue("token", "some-token")
+	rr := httptest.NewRecorder()
+
+	handler.AcceptInvite(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
+
+func TestInviteHandler_AcceptInvite_MissingToken_Returns400(t *testing.T) {
+	handler := org.NewInviteHandler(&mockInviteSvc{}, zerolog.Nop())
+
+	req := makeSignedRequest(t, http.MethodPost, "/api/v1/invites//accept", nil, "viewer")
+	// PathValue("token") returns "" when not set
+	rr := httptest.NewRecorder()
+
+	handler.AcceptInvite(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestInviteHandler_CreateInvite_NoOrgContext_Returns400(t *testing.T) {
+	handler := org.NewInviteHandler(&mockInviteSvc{}, zerolog.Nop())
+
+	req := makeSignedRequest(t, http.MethodPost, "/api/v1/orgs/test-org/invites",
+		map[string]string{"email": "new@example.com", "role": "editor"}, "admin")
+	// No org context injected
+	rr := httptest.NewRecorder()
+
+	handler.CreateInvite(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d: %s", rr.Code, rr.Body)
+	}
+}
+
+func TestInviteHandler_CreateInvite_MissingFields_Returns422(t *testing.T) {
+	handler := org.NewInviteHandler(&mockInviteSvc{}, zerolog.Nop())
+	o := &org.Org{ID: uuid.New(), Slug: "test-org", Plan: "teams"}
+
+	req := makeSignedRequest(t, http.MethodPost, "/api/v1/orgs/test-org/invites",
+		map[string]string{"email": ""}, "admin")
+	req = withOrgContext(req, o)
+	rr := httptest.NewRecorder()
+
+	handler.CreateInvite(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d: %s", rr.Code, rr.Body)
+	}
+}
+
+func TestInviteHandler_CreateInvite_ServiceError_Returns500(t *testing.T) {
+	handler := org.NewInviteHandler(&mockInviteSvc{createErr: apperrors.ErrForbidden.Wrap(errors.New("not allowed"))}, zerolog.Nop())
+	o := &org.Org{ID: uuid.New(), Slug: "test-org", Plan: "teams"}
+
+	req := makeSignedRequest(t, http.MethodPost, "/api/v1/orgs/test-org/invites",
+		map[string]string{"email": "x@x.com", "role": "editor"}, "editor")
+	req = withOrgContext(req, o)
+	rr := httptest.NewRecorder()
+
+	handler.CreateInvite(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d: %s", rr.Code, rr.Body)
 	}
 }

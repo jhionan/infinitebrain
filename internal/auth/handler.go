@@ -41,6 +41,12 @@ type logoutRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// permissionsResponse is the response body for GET /api/v1/me/permissions.
+type permissionsResponse struct {
+	Role        string       `json:"role"`
+	Permissions []Permission `json:"permissions"`
+}
+
 // Register handles POST /api/v1/auth/register.
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
@@ -152,9 +158,8 @@ func (h *Handler) MyPermissions(w http.ResponseWriter, r *http.Request) {
 		middleware.JSONError(w, apperrors.ErrUnauthorized.Wrap(fmt.Errorf("authentication required")))
 		return
 	}
-	perms := PermissionsForRole(claims.Role)
-	middleware.JSON(w, http.StatusOK, map[string]any{
-		"role":        claims.Role,
-		"permissions": perms,
+	middleware.JSON(w, http.StatusOK, permissionsResponse{
+		Role:        claims.Role,
+		Permissions: PermissionsForRole(claims.Role),
 	})
 }

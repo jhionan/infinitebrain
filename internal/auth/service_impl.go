@@ -131,7 +131,12 @@ func (s *serviceImpl) Me(ctx context.Context, userID string) (*UserProfile, erro
 }
 
 // GetUserOrgs returns all orgs the user belongs to.
+// The caller must be the same user as userID — querying another user's orgs is forbidden.
 func (s *serviceImpl) GetUserOrgs(ctx context.Context, userID uuid.UUID) ([]OrgMembership, error) {
+	claims, ok := ClaimsFromContext(ctx)
+	if !ok || claims.UserID != userID {
+		return nil, apperrors.ErrForbidden.Wrap(fmt.Errorf("cannot query another user's orgs"))
+	}
 	orgs, err := s.repo.GetUserOrgs(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get user orgs: %w", err)

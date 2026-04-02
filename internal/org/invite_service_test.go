@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rian/infinite_brain/internal/auth"
 	"github.com/rian/infinite_brain/internal/org"
 	apperrors "github.com/rian/infinite_brain/pkg/errors"
 )
@@ -152,6 +151,60 @@ func TestInviteService_AcceptInvite_ReturnsNotFoundForInvalidToken(t *testing.T)
 	}
 }
 
-// Compile check: auth exports are accessible from org_test.
-var _ = auth.Can
-var _ auth.Permission = auth.PermManageMembers
+func TestInviteService_CreateInvite_CallerNotMemberReturnsForbidden(t *testing.T) {
+	svc, orgRepo, _ := newTestInviteService()
+	o := &org.Org{ID: uuid.New(), Slug: "invite-notmember", Plan: "teams"}
+	orgRepo.seedOrg(o)
+	// caller is not added as a member
+
+	_, err := svc.CreateInvite(context.Background(), o.ID, "x@x.com", testInviteRole, uuid.New())
+	if !errors.Is(err, apperrors.ErrForbidden) {
+		t.Errorf("expected ErrForbidden, got %v", err)
+	}
+}
+
+func TestInviteService_AcceptInvite_AcceptErrorPropagates(t *testing.T) {
+	_, orgRepo, inviteRepo := newTestInviteService()
+
+	// Use a custom invite repo that errors on Accept.
+	errRepo := &mockInviteRepoWithAcceptErr{inviteRepo: inviteRepo}
+	svc := org.NewInviteService(errRepo, orgRepo)
+
+	o := &org.Org{ID: uuid.New(), Slug: "accept-err-org", Plan: "teams"}
+	orgRepo.seedOrg(o)
+	callerID := uuid.New()
+	_ = orgRepo.AddMember(context.Background(), o.ID, callerID, "admin", nil)
+
+	token := "accept-err-token"
+	inviteRepo.invites[token] = &org.Invite{
+		ID:        uuid.New(),
+		OrgID:     o.ID,
+		Email:     "x@x.com",
+		Role:      testInviteRole,
+		InvitedBy: callerID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+
+	err := svc.AcceptInvite(context.Background(), token, uuid.New())
+	if err == nil {
+		t.Error("expected error from Accept, got nil")
+	}
+}
+
+// mockInviteRepoWithAcceptErr wraps mockInviteRepo but makes Accept always fail.
+type mockInviteRepoWithAcceptErr struct {
+	inviteRepo *mockInviteRepo
+}
+
+func (m *mockInviteRepoWithAcceptErr) Create(ctx context.Context, i *org.Invite) (*org.Invite, error) {
+	return m.inviteRepo.Create(ctx, i)
+}
+
+func (m *mockInviteRepoWithAcceptErr) FindByToken(ctx context.Context, token string) (*org.Invite, error) {
+	return m.inviteRepo.FindByToken(ctx, token)
+}
+
+func (m *mockInviteRepoWithAcceptErr) Accept(_ context.Context, _ uuid.UUID) error {
+	return errors.New("db error: accept failed")
+}

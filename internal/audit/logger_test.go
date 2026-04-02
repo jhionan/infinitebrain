@@ -79,3 +79,30 @@ func TestNoopRecorder_Record_DoesNotPanic(_ *testing.T) {
 	var recorder audit.Recorder = audit.NoopRecorder{}
 	recorder.Record(context.Background(), "any.action", "node", nil, nil, nil)
 }
+
+func TestAuditRecorder_Record_WithBeforeAndAfter(t *testing.T) {
+	repo := &mockAuditRepo{}
+	recorder := audit.NewRecorder(repo)
+	orgID := uuid.New()
+	userID := uuid.New()
+	ctx := claimsCtx(orgID, userID)
+
+	type payload struct {
+		Name string `json:"name"`
+	}
+	recorder.Record(ctx, "node.update", "node", nil,
+		payload{Name: "old"}, payload{Name: "new"})
+
+	time.Sleep(10 * time.Millisecond)
+
+	if len(repo.entries) != 1 {
+		t.Fatalf("expected 1 audit entry, got %d", len(repo.entries))
+	}
+	e := repo.entries[0]
+	if e.Before == nil {
+		t.Error("expected Before to be non-nil")
+	}
+	if e.After == nil {
+		t.Error("expected After to be non-nil")
+	}
+}

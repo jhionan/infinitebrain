@@ -24,10 +24,12 @@ WHERE token = $1
   AND expires_at > now()
   AND accepted_at IS NULL;
 
--- name: AcceptOrgInvite :exec
+-- name: AcceptOrgInvite :one
 UPDATE org_invites
 SET accepted_at = now()
-WHERE id = $1;
+WHERE id = $1
+  AND accepted_at IS NULL
+RETURNING id;
 
 -- name: GetUserOrgs :many
 SELECT o.id, o.name, o.slug, o.plan, om.role
