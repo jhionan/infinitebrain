@@ -117,7 +117,7 @@ Someday:  Post-MVP                 → clearly parked
 | T-008 | User model + registration / login API | `completed` | features/008-users/ | internal/auth; users table; email verification; password reset |
 | T-101 | Multi-tenancy — organizations + members | `completed` | features/101-multi-tenancy/ | organizations + org_members tables; org_id on all data tables; PostgreSQL RLS; personal org auto-created on signup |
 | T-100 | Zitadel SSO — OIDC integration | `planned` | features/100-zitadel-sso/ | OIDCAuthenticator via go-oidc/v3; same Authenticator interface as T-007; personal access tokens (ibpat_ prefix); Zitadel in docker-compose |
-| T-102 | RBAC — roles and permissions | `planned` | features/102-rbac/ | owner / admin / editor / viewer; Can(role, permission); connect-go interceptor; org_invites; append-only audit_log; Zitadel role sync |
+| T-102 | RBAC — roles and permissions | `completed` | features/102-rbac/ | owner / admin / editor / viewer; Can(role, permission); connect-go interceptor; org_invites; append-only audit_log; Zitadel role sync |
 
 ---
 
