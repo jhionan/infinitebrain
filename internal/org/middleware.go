@@ -11,6 +11,10 @@ import (
 
 type orgContextKey struct{}
 
+// OrgContextKey is the context key for the org injected by OrgResolver.
+// Exported for use in handler tests that need to inject an org directly.
+type OrgContextKey = orgContextKey
+
 // OrgResolver extracts the org slug from the request's Host header and injects
 // the resolved Org into the request context. Requests with no subdomain (or
 // www/api) pass through unchanged — org is then resolved from the JWT claims.
