@@ -1,3 +1,5 @@
+// Package capture implements the note capture domain: creation, retrieval,
+// update, soft-delete, and archival of notes owned by an org.
 package capture
 
 import (
@@ -9,6 +11,7 @@ import (
 // NoteSource identifies how a note entered the system.
 type NoteSource string
 
+// NoteSource values mirror the intake channels supported by the capture pipeline.
 const (
 	SourceManual   NoteSource = "manual"
 	SourceVoice    NoteSource = "voice"
@@ -21,6 +24,7 @@ const (
 // NoteStatus tracks where in the AI pipeline a note sits.
 type NoteStatus string
 
+// NoteStatus values represent lifecycle stages in the capture-to-classify pipeline.
 const (
 	StatusInbox      NoteStatus = "inbox"
 	StatusClassified NoteStatus = "classified"
@@ -31,6 +35,7 @@ const (
 // Mirrors the nodes.visibility check constraint.
 type Visibility string
 
+// Visibility values mirror the nodes.visibility check constraint in the database.
 const (
 	VisibilityIndividual   Visibility = "individual"
 	VisibilityUnit         Visibility = "unit"
@@ -50,7 +55,7 @@ type Note struct {
 	Content      string
 	Source       NoteSource
 	Status       NoteStatus
-	PARACategory *string    // nil until AI classifies the note
+	PARACategory *string // nil until AI classifies the note
 	ProjectID    *uuid.UUID
 	Tags         []string
 	Visibility   Visibility
