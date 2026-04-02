@@ -22,9 +22,6 @@ func newMockRepo() *mockNoteRepo {
 }
 
 func (m *mockNoteRepo) Create(_ context.Context, orgID, userID uuid.UUID, in capture.CreateNoteInput) (*capture.Note, error) {
-	if in.Content == "" {
-		return nil, apperrors.ErrValidation.Wrap(errors.New("content required"))
-	}
 	n := &capture.Note{
 		ID:        uuid.New(),
 		OrgID:     orgID,
@@ -107,27 +104,39 @@ func newTestSvc() (capture.NoteService, *mockNoteRepo) {
 	return capture.NewService(repo), repo
 }
 
-func TestNoteService_Create_ValidInput_Succeeds(t *testing.T) {
-	svc, _ := newTestSvc()
-	orgID, userID := uuid.New(), uuid.New()
-
-	note, err := svc.Create(context.Background(), orgID, userID, capture.CreateNoteInput{
-		Content: "Test note.",
-		Source:  capture.SourceManual,
-	})
-	if err != nil {
-		t.Fatalf("Create: %v", err)
+func TestNoteService_Create(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   capture.CreateNoteInput
+		wantErr error
+	}{
+		{
+			name:  "valid input returns inbox note",
+			input: capture.CreateNoteInput{Content: "Test note.", Source: capture.SourceManual},
+		},
+		{
+			name:    "empty content returns validation error",
+			input:   capture.CreateNoteInput{Content: ""},
+			wantErr: apperrors.ErrValidation,
+		},
 	}
-	if note.Status != capture.StatusInbox {
-		t.Errorf("Status = %q, want inbox", note.Status)
-	}
-}
-
-func TestNoteService_Create_EmptyContent_ReturnsValidation(t *testing.T) {
-	svc, _ := newTestSvc()
-	_, err := svc.Create(context.Background(), uuid.New(), uuid.New(), capture.CreateNoteInput{Content: ""})
-	if !errors.Is(err, apperrors.ErrValidation) {
-		t.Errorf("expected ErrValidation, got %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc, _ := newTestSvc()
+			note, err := svc.Create(context.Background(), uuid.New(), uuid.New(), tt.input)
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Errorf("error = %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Create: %v", err)
+			}
+			if note.Status != capture.StatusInbox {
+				t.Errorf("Status = %q, want inbox", note.Status)
+			}
+		})
 	}
 }
 
@@ -172,5 +181,46 @@ func TestNoteService_Get_NotFound_ReturnsError(t *testing.T) {
 	_, err := svc.Get(context.Background(), uuid.New(), uuid.New())
 	if !errors.Is(err, apperrors.ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestNoteService_Update_Owner_Succeeds(t *testing.T) {
+	svc, repo := newTestSvc()
+	orgID, ownerID := uuid.New(), uuid.New()
+	note, _ := repo.Create(context.Background(), orgID, ownerID, capture.CreateNoteInput{Content: "original"})
+
+	updated, err := svc.Update(context.Background(), orgID, ownerID, note.ID, capture.UpdateNoteInput{
+		Title:   "New Title",
+		Content: "updated content",
+	})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.Title != "New Title" {
+		t.Errorf("Title = %q, want New Title", updated.Title)
+	}
+}
+
+func TestNoteService_Delete_Owner_Succeeds(t *testing.T) {
+	svc, repo := newTestSvc()
+	orgID, ownerID := uuid.New(), uuid.New()
+	note, _ := repo.Create(context.Background(), orgID, ownerID, capture.CreateNoteInput{Content: "delete me"})
+
+	if err := svc.Delete(context.Background(), orgID, ownerID, note.ID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+}
+
+func TestNoteService_Archive_Owner_Succeeds(t *testing.T) {
+	svc, repo := newTestSvc()
+	orgID, ownerID := uuid.New(), uuid.New()
+	note, _ := repo.Create(context.Background(), orgID, ownerID, capture.CreateNoteInput{Content: "archive me"})
+
+	archived, err := svc.Archive(context.Background(), orgID, ownerID, note.ID)
+	if err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	if archived.Status != capture.StatusArchived {
+		t.Errorf("Status = %q, want archived", archived.Status)
 	}
 }

@@ -38,6 +38,12 @@ func (s *noteServiceImpl) Get(ctx context.Context, orgID, noteID uuid.UUID) (*No
 }
 
 func (s *noteServiceImpl) List(ctx context.Context, orgID, userID uuid.UUID, page, pageSize int) (*NoteList, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
 	list, err := s.repo.List(ctx, orgID, userID, page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("list notes: %w", err)
@@ -46,6 +52,12 @@ func (s *noteServiceImpl) List(ctx context.Context, orgID, userID uuid.UUID, pag
 }
 
 func (s *noteServiceImpl) Inbox(ctx context.Context, orgID, userID uuid.UUID, page, pageSize int) (*NoteList, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
 	list, err := s.repo.ListInbox(ctx, orgID, userID, page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("list inbox: %w", err)
@@ -54,6 +66,9 @@ func (s *noteServiceImpl) Inbox(ctx context.Context, orgID, userID uuid.UUID, pa
 }
 
 func (s *noteServiceImpl) Update(ctx context.Context, orgID, callerID, noteID uuid.UUID, in UpdateNoteInput) (*Note, error) {
+	if in.Content == "" {
+		return nil, apperrors.ErrValidation.Wrap(errors.New("note content is required"))
+	}
 	note, err := s.repo.FindByID(ctx, orgID, noteID)
 	if err != nil {
 		return nil, fmt.Errorf("find note for update: %w", err)
