@@ -1,6 +1,6 @@
 .PHONY: all build test test-integration lint fmt vet clean \
         db-migrate db-rollback db-diff db-generate \
-        proto mockery docker-up docker-down security-scan vuln-check help
+        proto mockery docker-up docker-down security-scan vuln-check run-local help
 
 # ─── Variables ────────────────────────────────────────────────────────────────
 BINARY_NAME     := infinite-brain
@@ -23,6 +23,10 @@ build:
 
 run: build
 	@./$(BINARY_PATH)
+
+run-local:
+	@echo "→ Running with local dev config..."
+	@set -a && . ./configs/local.env && set +a && go run $(MAIN_PKG)
 
 # ─── Testing ──────────────────────────────────────────────────────────────────
 test:
@@ -152,6 +156,7 @@ help:
 	@echo "  Build:"
 	@echo "    make build                  Build the server binary"
 	@echo "    make run                    Build and run the server"
+	@echo "    make run-local              Build and run with configs/local.env"
 	@echo ""
 	@echo "  Testing:"
 	@echo "    make test                   Run all unit tests"

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/rian/infinite_brain/api/gen/user/v1;userv1";
+
+// UserService manages user accounts and profiles.
+service UserService {
+  // GetMe returns the authenticated user's profile.
+  rpc GetMe(GetMeRequest) returns (GetMeResponse);
+  // UpdateMe updates the authenticated user's profile.
+  rpc UpdateMe(UpdateMeRequest) returns (UpdateMeResponse);
+}
+
+message GetMeRequest {}
+
+message GetMeResponse {
+  string id    = 1;
+  string email = 2;
+  string name  = 3;
+}
+
+message UpdateMeRequest {
+  string name = 1;
+}
+
+message UpdateMeResponse {
+  string id    = 1;
+  string email = 2;
+  string name  = 3;
+}

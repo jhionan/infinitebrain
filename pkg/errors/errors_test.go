@@ -1,4 +1,4 @@
-package errors_test
+package apperrors_test
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func TestAppError_Unwrap_ReturnsWrappedError(t *testing.T) {
 	underlying := fmt.Errorf("original")
 	wrapped := apperrors.ErrInternal.Wrap(underlying)
 
-	if wrapped.Unwrap() != underlying {
+	if wrapped.Unwrap() != underlying { //nolint:errorlint // testing the Unwrap() mechanism directly
 		t.Error("Unwrap() did not return original error")
 	}
 }

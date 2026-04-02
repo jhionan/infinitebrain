@@ -62,7 +62,7 @@ Someday:  Post-MVP                 → clearly parked
 | T-105 | LICENSE (AGPL-3.0) | `planned` | — | Actual LICENSE file in repo root |
 | T-106 | README.md — portfolio-grade | `planned` | — | Badges, Mermaid architecture diagram, quick start, stack rationale, links to ADRs |
 | T-107 | Open source hygiene | `planned` | — | CONTRIBUTING.md, SECURITY.md, CHANGELOG.md, .github/ISSUE_TEMPLATE/, .github/pull_request_template.md |
-| T-108 | Dockerfile — multi-stage + distroless | `planned` | features/108-dockerfile/ | Builder stage (Go 1.26.1) + gcr.io/distroless/static final; non-root user; no shell |
+| T-108 | Dockerfile — multi-stage + distroless | `completed` | features/108-dockerfile/ | Builder stage (Go 1.26.1) + gcr.io/distroless/static final; non-root user; no shell |
 | T-109 | Architecture Decision Records (ADRs) | `planned` | docs/decisions/ | One ADR per key decision: connect-go, Valkey, River, OpenBao, Atlas, pgvector, AGPL-3.0 |
 
 ---
@@ -75,8 +75,8 @@ Someday:  Post-MVP                 → clearly parked
 |---|---|---|---|---|
 | T-002 | Core configuration system (cleanenv, env + yaml) | `completed` | features/002-config/ | pkg/config — 7 tests |
 | T-003 | Structured logger (slog) | `completed` | features/003-logger/ | pkg/logger — 4 tests |
-| T-004 | PostgreSQL 18.3 + Atlas migrations | `in_progress` | features/004-database/ | pgvector enabled; Atlas schema-as-code; reversible migrations |
-| T-005 | Valkey 9 connection pool | `planned` | features/005-valkey/ | Replaces Redis; pkg/cache; connection health check |
+| T-004 | PostgreSQL 18.3 + Atlas migrations | `completed` | features/004-database/ | pgvector enabled; Atlas schema-as-code; reversible migrations |
+| T-005 | Valkey 9 connection pool | `completed` | features/005-valkey/ | Replaces Redis; pkg/cache; connection health check |
 | T-090 | Docker Compose dev environment | `completed` | features/090-docker/ | PostgreSQL 18, Valkey 9, MinIO, OpenBao, Jaeger |
 
 ---
@@ -87,10 +87,10 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-112 | connect-go server (REST + gRPC + gRPC-Web, graceful shutdown) | `planned` | features/112-server/ | Single handler serves all three protocols; replaces Chi + separate gRPC server; buf + protovalidate |
-| T-103 | Protocol Buffers — service definitions + buf codegen | `planned` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
-| T-110 | Health + readiness endpoints | `planned` | features/110-health/ | GET /health/live (liveness), GET /health/ready (readiness: DB + Valkey + migrations); used by k8s probes |
-| T-111 | Observability foundation | `planned` | features/111-observability/ | Correlation/trace IDs on every request; slog fields; OTEL traces to Tempo; Prometheus /metrics; request ID in response headers |
+| T-112 | connect-go server (REST + gRPC + gRPC-Web, graceful shutdown) | `completed` | features/112-server/ | Single handler serves all three protocols; replaces Chi + separate gRPC server; buf + protovalidate |
+| T-103 | Protocol Buffers — service definitions + buf codegen | `completed` | features/103-grpc/ | api/proto/; common/v1, capture/v1, ai/v1, knowledge/v1, memory/v1; make proto target |
+| T-110 | Health + readiness endpoints | `completed` | features/110-health/ | GET /health/live (liveness), GET /health/ready (readiness: DB + Valkey + migrations); used by k8s probes |
+| T-111 | Observability foundation | `completed` | features/111-observability/ | Correlation/trace IDs on every request; slog fields; OTEL traces to Tempo; Prometheus /metrics; request ID in response headers |
 | T-091 | CI pipeline (GitHub Actions) | `completed` | features/091-ci/ | test + lint + build + security scan; Go 1.26.1, pgvector/pgvector:pg18, valkey:9-alpine |
 
 ---
@@ -101,9 +101,9 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-098 | Security hardening middleware | `planned` | features/098-security/ | HTTP security headers; Valkey sliding-window rate limiter; account lockout; prompt injection guard (PromptGuard) |
-| T-099 | Honeypot endpoints | `planned` | features/099-honeypot/ | 8 fake endpoints; hit logging; progressive auto-block (2→24h, 5→7d, 10→permanent); fake .env with realistic credentials |
-| T-104 | SOC2 + HIPAA compliance | `planned` | features/104-compliance/ | Field-level AES-256-GCM; OpenBao key management; tamper-evident audit log (hash chain); salt+pepper passwords; auto-rotation; BAA support; right to erasure |
+| T-098 | Security hardening middleware | `completed` | features/098-security/ | HTTP security headers; Valkey sliding-window rate limiter; account lockout; prompt injection guard (PromptGuard) |
+| T-099 | Honeypot endpoints | `completed` | features/099-honeypot/ | 8 fake endpoints; hit logging; progressive auto-block (2→24h, 5→7d, 10→permanent); fake .env with realistic credentials |
+| T-104 | SOC2 + HIPAA compliance | `completed` | features/104-compliance/ | Field-level AES-256-GCM; OpenBao key management; tamper-evident audit log (hash chain); salt+pepper passwords; auto-rotation; BAA support; right to erasure |
 
 ---
 
@@ -113,11 +113,11 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-007 | Auth system — JWT + argon2id + pepper + refresh token rotation | `planned` | features/007-auth/ | JWTAuthenticator implements Authenticator interface; stateless; argon2id with pepper from OpenBao |
-| T-008 | User model + registration / login API | `planned` | features/008-users/ | internal/auth; users table; email verification; password reset |
-| T-101 | Multi-tenancy — organizations + members | `planned` | features/101-multi-tenancy/ | organizations + org_members tables; org_id on all data tables; PostgreSQL RLS; personal org auto-created on signup |
+| T-007 | Auth system — JWT + argon2id + pepper + refresh token rotation | `completed` | features/007-auth/ | JWTAuthenticator implements Authenticator interface; stateless; argon2id with pepper from OpenBao |
+| T-008 | User model + registration / login API | `completed` | features/008-users/ | internal/auth; users table; email verification; password reset |
+| T-101 | Multi-tenancy — organizations + members | `completed` | features/101-multi-tenancy/ | organizations + org_members tables; org_id on all data tables; PostgreSQL RLS; personal org auto-created on signup |
 | T-100 | Zitadel SSO — OIDC integration | `planned` | features/100-zitadel-sso/ | OIDCAuthenticator via go-oidc/v3; same Authenticator interface as T-007; personal access tokens (ibpat_ prefix); Zitadel in docker-compose |
-| T-102 | RBAC — roles and permissions | `planned` | features/102-rbac/ | owner / admin / editor / viewer; Can(role, permission); connect-go interceptor; org_invites; append-only audit_log; Zitadel role sync |
+| T-102 | RBAC — roles and permissions | `completed` | features/102-rbac/ | owner / admin / editor / viewer; Can(role, permission); connect-go interceptor; org_invites; append-only audit_log; Zitadel role sync |
 
 ---
 
@@ -150,7 +150,7 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Status | Feature Spec | Notes |
 |---|---|---|---|---|
-| T-010 | Note model + CRUD API | `planned` | features/010-notes/ | Core capture unit; org-scoped; NodeAggregate (T-120); full test coverage |
+| T-010 | Note model + CRUD API | `completed` | features/010-notes/ | Core capture unit; org-scoped; NodeAggregate (T-120); full test coverage |
 | T-011 | Voice note upload + transcription (Whisper) | `planned` | features/011-voice-notes/ | S3 upload; River job for async transcription; result back-fills node content |
 | T-013 | Email capture (inbound webhook → note) | `planned` | features/013-email-capture/ | Postal / Mailgun inbound; parses headers + body; lands in inbox |
 | T-014 | Webhook capture endpoint (generic) | `planned` | features/014-webhooks/ | Generic POST /capture; any bot or integration sends here; HMAC signature validation |
@@ -467,6 +467,11 @@ Someday:  Post-MVP                 → clearly parked
 
 | ID | Task | Completed | Notes |
 |---|---|---|---|
+| T-112 | connect-go Ping service handler | 2026-04-01 | internal/ping; unary handler; 2 integration tests |
+| T-110 | Health + readiness endpoints | 2026-04-01 | internal/health; GET /health/live, GET /health/ready |
+| T-103 | Protocol Buffers + buf infrastructure | 2026-04-01 | ping/v1/ping.proto; generated via buf |
+| T-005 | Valkey 9 connection pool | 2026-04-01 | pkg/cache — 3 testcontainers integration tests pass; valkey-go v1.0.73 |
+| T-004 | PostgreSQL 18.3 + Atlas migrations | 2026-04-01 | pgvector, HNSW, RLS, FTS — all integration tests pass |
 | T-001 | Project setup: Go module, folder structure, Makefile | 2026-03-04 | Initial scaffold |
 | T-002 | Core configuration system | 2026-03-04 | pkg/config — 7 tests |
 | T-003 | Structured logger | 2026-03-04 | pkg/logger — 4 tests |

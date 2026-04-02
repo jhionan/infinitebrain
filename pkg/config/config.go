@@ -14,7 +14,7 @@ import (
 type Config struct {
 	App      AppConfig
 	Database DatabaseConfig
-	Redis    RedisConfig
+	Valkey   ValkeyConfig
 	Auth     AuthConfig
 	AI       AIConfig
 	Storage  StorageConfig
@@ -37,8 +37,8 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration
 }
 
-// RedisConfig holds Redis settings.
-type RedisConfig struct {
+// ValkeyConfig holds Valkey connection settings.
+type ValkeyConfig struct {
 	URL      string
 	Password string
 	DB       int
@@ -47,6 +47,7 @@ type RedisConfig struct {
 // AuthConfig holds JWT and auth settings.
 type AuthConfig struct {
 	JWTSecret            string
+	ArgonPepper          string
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
 }
@@ -92,13 +93,14 @@ func Load() (*Config, error) {
 			MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 5),
 			ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		},
-		Redis: RedisConfig{
-			URL:      requireEnv("REDIS_URL"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getEnvInt("REDIS_DB", 0),
+		Valkey: ValkeyConfig{
+			URL:      requireEnv("VALKEY_URL"),
+			Password: getEnv("VALKEY_PASSWORD", ""),
+			DB:       getEnvInt("VALKEY_DB", 0),
 		},
 		Auth: AuthConfig{
 			JWTSecret:            requireEnv("JWT_SECRET"),
+			ArgonPepper:          requireEnv("ARGON_PEPPER"),
 			AccessTokenDuration:  getEnvDuration("JWT_ACCESS_DURATION", 15*time.Minute),
 			RefreshTokenDuration: getEnvDuration("JWT_REFRESH_DURATION", 7*24*time.Hour),
 		},
@@ -136,6 +138,10 @@ func (c *Config) validate() error {
 
 	if len(c.Auth.JWTSecret) < 32 {
 		errs = append(errs, errors.New("JWT_SECRET must be at least 32 characters"))
+	}
+
+	if len(c.Auth.ArgonPepper) < 32 {
+		errs = append(errs, errors.New("ARGON_PEPPER must be at least 32 characters"))
 	}
 
 	validEnvs := map[string]bool{"local": true, "staging": true, "production": true}

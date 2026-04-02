@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package graph.v1;
+
+option go_package = "github.com/rian/infinite_brain/api/gen/graph/v1;graphv1";
+
+// GraphService manages the knowledge graph (nodes and edges).
+service GraphService {
+  // CreateNode creates a new graph node.
+  rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse);
+  // GetNode retrieves a node by ID.
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  // CreateEdge links two nodes.
+  rpc CreateEdge(CreateEdgeRequest) returns (CreateEdgeResponse);
+}
+
+message CreateNodeRequest {
+  string label   = 1;
+  string content = 2;
+}
+
+message CreateNodeResponse {
+  string id = 1;
+}
+
+message GetNodeRequest {
+  string id = 1;
+}
+
+message GetNodeResponse {
+  string id      = 1;
+  string label   = 2;
+  string content = 3;
+}
+
+message CreateEdgeRequest {
+  string from_id = 1;
+  string to_id   = 2;
+  string label   = 3;
+}
+
+message CreateEdgeResponse {
+  string id = 1;
+}

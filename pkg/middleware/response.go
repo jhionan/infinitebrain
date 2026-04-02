@@ -10,7 +10,7 @@ import (
 
 // Response is the standard API response envelope.
 type Response struct {
-	Data  any    `json:"data"`
+	Data  any            `json:"data"`
 	Meta  *Meta          `json:"meta,omitempty"`
 	Error *ErrorResponse `json:"error,omitempty"`
 }

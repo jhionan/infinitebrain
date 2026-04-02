@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package search.v1;
+
+option go_package = "github.com/rian/infinite_brain/api/gen/search/v1;searchv1";
+
+// SearchService provides semantic and full-text search over the knowledge graph.
+service SearchService {
+  // Search performs a semantic or keyword search.
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+message SearchRequest {
+  string query     = 1;
+  int32  page_size = 2;
+}
+
+message SearchResult {
+  string id      = 1;
+  string title   = 2;
+  string snippet = 3;
+  float  score   = 4;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+}

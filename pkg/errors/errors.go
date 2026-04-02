@@ -1,5 +1,5 @@
-// Package errors defines typed application errors for consistent HTTP responses.
-package errors
+// Package apperrors defines typed application errors for consistent HTTP responses.
+package apperrors
 
 import (
 	"errors"
@@ -24,6 +24,16 @@ func (e *AppError) Error() string {
 
 func (e *AppError) Unwrap() error {
 	return e.Err
+}
+
+// Is reports whether this error matches target by comparing error codes.
+// This allows errors.Is(apperrors.ErrNotFound.Wrap(err), apperrors.ErrNotFound) to return true.
+func (e *AppError) Is(target error) bool {
+	var t *AppError
+	if errors.As(target, &t) {
+		return e.Code == t.Code
+	}
+	return false
 }
 
 // Wrap returns a new AppError wrapping an underlying error with additional context.
@@ -72,6 +82,11 @@ var (
 		HTTPStatus: http.StatusConflict,
 		Code:       "CONFLICT",
 		Message:    "resource already exists",
+	}
+	ErrPlanLimitReached = &AppError{
+		HTTPStatus: http.StatusPaymentRequired,
+		Code:       "PLAN_LIMIT_REACHED",
+		Message:    "plan limit reached",
 	}
 	ErrInternal = &AppError{
 		HTTPStatus: http.StatusInternalServerError,
