@@ -67,7 +67,7 @@ UPDATE nodes
 SET title      = $3,
     content    = $4,
     tags       = $5,
-    metadata   = metadata || $6::jsonb,
+    metadata   = metadata || sqlc.arg(metadata_patch)::jsonb,
     updated_at = now()
 WHERE id = $1
   AND org_id = $2

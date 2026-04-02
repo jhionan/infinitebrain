@@ -181,7 +181,7 @@ func (r *pgNoteRepository) FindByID(ctx context.Context, orgID, noteID uuid.UUID
 	})
 }
 
-//nolint:dupl // List and ListInbox share pagination shape but query different result sets.
+//nolint:dupl // List and ListInbox share pagination shape but call different query functions.
 func (r *pgNoteRepository) List(ctx context.Context, orgID, userID uuid.UUID, page, pageSize int) (*NoteList, error) {
 	orgPG := pgtype.UUID{Bytes: orgID, Valid: true}
 	userPG := pgtype.UUID{Bytes: userID, Valid: true}
@@ -199,7 +199,14 @@ func (r *pgNoteRepository) List(ctx context.Context, orgID, userID uuid.UUID, pa
 		return nil, fmt.Errorf("count notes: %w", err)
 	}
 
-	notes, err := mapListNotesRows(rows)
+	notes, err := mapNoteRows(rows, func(row sqlcdb.ListNotesRow) sharedNoteFields {
+		return sharedNoteFields{
+			id: row.ID, orgID: row.OrgID, userID: row.UserID,
+			title: row.Title, content: row.Content, para: row.Para, projectID: row.ProjectID,
+			tags: row.Tags, visibility: row.Visibility, isPhi: row.IsPhi, metadata: row.Metadata,
+			createdAt: row.CreatedAt, updatedAt: row.UpdatedAt, archivedAt: row.ArchivedAt,
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +214,7 @@ func (r *pgNoteRepository) List(ctx context.Context, orgID, userID uuid.UUID, pa
 	return &NoteList{Notes: notes, Total: total, Page: page, PageSize: pageSize}, nil
 }
 
-//nolint:dupl // ListInbox and List share pagination shape but query different result sets.
+//nolint:dupl // ListInbox and List share pagination shape but call different query functions.
 func (r *pgNoteRepository) ListInbox(ctx context.Context, orgID, userID uuid.UUID, page, pageSize int) (*NoteList, error) {
 	orgPG := pgtype.UUID{Bytes: orgID, Valid: true}
 	userPG := pgtype.UUID{Bytes: userID, Valid: true}
@@ -225,7 +232,14 @@ func (r *pgNoteRepository) ListInbox(ctx context.Context, orgID, userID uuid.UUI
 		return nil, fmt.Errorf("count inbox notes: %w", err)
 	}
 
-	notes, err := mapListInboxNotesRows(rows)
+	notes, err := mapNoteRows(rows, func(row sqlcdb.ListInboxNotesRow) sharedNoteFields {
+		return sharedNoteFields{
+			id: row.ID, orgID: row.OrgID, userID: row.UserID,
+			title: row.Title, content: row.Content, para: row.Para, projectID: row.ProjectID,
+			tags: row.Tags, visibility: row.Visibility, isPhi: row.IsPhi, metadata: row.Metadata,
+			createdAt: row.CreatedAt, updatedAt: row.UpdatedAt, archivedAt: row.ArchivedAt,
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +255,12 @@ func (r *pgNoteRepository) Update(ctx context.Context, orgID, noteID uuid.UUID, 
 	}
 
 	row, err := r.queries.UpdateNote(ctx, sqlcdb.UpdateNoteParams{
-		ID:      pgtype.UUID{Bytes: noteID, Valid: true},
-		OrgID:   pgtype.UUID{Bytes: orgID, Valid: true},
-		Title:   in.Title,
-		Content: &content,
-		Tags:    tags,
-		Column6: []byte(`{}`),
+		ID:            pgtype.UUID{Bytes: noteID, Valid: true},
+		OrgID:         pgtype.UUID{Bytes: orgID, Valid: true},
+		Title:         in.Title,
+		Content:       &content,
+		Tags:          tags,
+		MetadataPatch: []byte(`{}`),
 	})
 	if err != nil {
 		return nil, noteNotFound(err)
@@ -316,55 +330,15 @@ func noteNotFound(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return apperrors.ErrNotFound.Wrap(errors.New("note not found"))
 	}
-	return fmt.Errorf("note not found: %w", err)
+	return fmt.Errorf("query note: %w", err)
 }
 
-func mapListNotesRows(rows []sqlcdb.ListNotesRow) ([]*Note, error) {
+// mapNoteRows converts a slice of sqlc row types to domain Notes.
+// The toFields function extracts the common sharedNoteFields from each row.
+func mapNoteRows[R any](rows []R, toFields func(R) sharedNoteFields) ([]*Note, error) {
 	notes := make([]*Note, 0, len(rows))
 	for _, row := range rows {
-		n, err := buildNote(sharedNoteFields{
-			id:         row.ID,
-			orgID:      row.OrgID,
-			userID:     row.UserID,
-			title:      row.Title,
-			content:    row.Content,
-			para:       row.Para,
-			projectID:  row.ProjectID,
-			tags:       row.Tags,
-			visibility: row.Visibility,
-			isPhi:      row.IsPhi,
-			metadata:   row.Metadata,
-			createdAt:  row.CreatedAt,
-			updatedAt:  row.UpdatedAt,
-			archivedAt: row.ArchivedAt,
-		})
-		if err != nil {
-			return nil, err
-		}
-		notes = append(notes, n)
-	}
-	return notes, nil
-}
-
-func mapListInboxNotesRows(rows []sqlcdb.ListInboxNotesRow) ([]*Note, error) {
-	notes := make([]*Note, 0, len(rows))
-	for _, row := range rows {
-		n, err := buildNote(sharedNoteFields{
-			id:         row.ID,
-			orgID:      row.OrgID,
-			userID:     row.UserID,
-			title:      row.Title,
-			content:    row.Content,
-			para:       row.Para,
-			projectID:  row.ProjectID,
-			tags:       row.Tags,
-			visibility: row.Visibility,
-			isPhi:      row.IsPhi,
-			metadata:   row.Metadata,
-			createdAt:  row.CreatedAt,
-			updatedAt:  row.UpdatedAt,
-			archivedAt: row.ArchivedAt,
-		})
+		n, err := buildNote(toFields(row))
 		if err != nil {
 			return nil, err
 		}

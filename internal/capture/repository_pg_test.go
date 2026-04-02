@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -268,5 +269,109 @@ func TestNoteRepository_Archive_SetsArchivedAt(t *testing.T) {
 	}
 	if archived.Status != capture.StatusArchived {
 		t.Errorf("Status = %q, want archived", archived.Status)
+	}
+}
+
+func TestNoteRepository_Archive_ExcludesFromListInbox(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := capture.NewRepository(pool)
+	orgID, userID := seedUser(t, pool, "archiveinbox@example.com")
+
+	note, err := repo.Create(context.Background(), orgID, userID, capture.CreateNoteInput{
+		Content: "Should leave inbox on archive.",
+		Source:  capture.SourceManual,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// Confirm it appears in inbox before archiving.
+	before, err := repo.ListInbox(context.Background(), orgID, userID, 1, 10)
+	if err != nil {
+		t.Fatalf("ListInbox before archive: %v", err)
+	}
+	if before.Total == 0 {
+		t.Fatal("expected note in inbox before archive")
+	}
+
+	if _, err := repo.Archive(context.Background(), orgID, note.ID); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+
+	// Confirm it is gone from inbox after archiving.
+	after, err := repo.ListInbox(context.Background(), orgID, userID, 1, 10)
+	if err != nil {
+		t.Fatalf("ListInbox after archive: %v", err)
+	}
+	if after.Total != 0 {
+		t.Errorf("expected 0 inbox notes after archive, got %d", after.Total)
+	}
+}
+
+func TestNoteRepository_List_ExcludesOtherOrgNotes(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := capture.NewRepository(pool)
+
+	orgA, userA := seedUser(t, pool, "orga@example.com")
+	orgB, userB := seedUser(t, pool, "orgb@example.com")
+
+	_, err := repo.Create(context.Background(), orgA, userA, capture.CreateNoteInput{
+		Content: "Org A note.",
+		Source:  capture.SourceManual,
+	})
+	if err != nil {
+		t.Fatalf("Create org A note: %v", err)
+	}
+
+	_, err = repo.Create(context.Background(), orgB, userB, capture.CreateNoteInput{
+		Content: "Org B note.",
+		Source:  capture.SourceManual,
+	})
+	if err != nil {
+		t.Fatalf("Create org B note: %v", err)
+	}
+
+	resultA, err := repo.List(context.Background(), orgA, userA, 1, 10)
+	if err != nil {
+		t.Fatalf("List org A: %v", err)
+	}
+	if resultA.Total != 1 {
+		t.Errorf("org A: expected 1 note, got %d", resultA.Total)
+	}
+
+	resultB, err := repo.List(context.Background(), orgB, userB, 1, 10)
+	if err != nil {
+		t.Fatalf("List org B: %v", err)
+	}
+	if resultB.Total != 1 {
+		t.Errorf("org B: expected 1 note, got %d", resultB.Total)
+	}
+}
+
+func TestNoteRepository_Delete_PreservesRowWithDeletedAt(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := capture.NewRepository(pool)
+	orgID, userID := seedUser(t, pool, "softdelete@example.com")
+
+	note, _ := repo.Create(context.Background(), orgID, userID, capture.CreateNoteInput{
+		Content: "Should be soft-deleted.",
+		Source:  capture.SourceManual,
+	})
+
+	if err := repo.Delete(context.Background(), orgID, note.ID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	// Row should still exist with deleted_at set.
+	var deletedAt *time.Time
+	err := pool.QueryRow(context.Background(),
+		`SELECT deleted_at FROM nodes WHERE id = $1`,
+		note.ID,
+	).Scan(&deletedAt)
+	if err != nil {
+		t.Fatalf("query deleted node: %v", err)
+	}
+	if deletedAt == nil {
+		t.Error("expected deleted_at to be set after soft-delete")
 	}
 }
